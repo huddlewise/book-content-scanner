@@ -187,17 +187,6 @@ body {
   border-color: var(--line-dark);
 }
 
-.entry-card::after {
-  content: "01";
-  position: absolute;
-  top: 0.85rem;
-  right: 1rem;
-  color: var(--coral);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-}
-
 .card-label {
   font-family: var(--font-mono);
   font-size: 0.68rem;
