@@ -912,6 +912,29 @@ input:focus, button:focus-visible, textarea:focus { outline-color: #73a9a1; bord
 .threshold-row { padding: 0.7rem 0; }
 .kid-verdicts { border: 0; background: var(--teal-soft); border-radius: 10px; }
 
+.decision-guide {
+  margin: 1rem 0 1.1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #b9d5d0;
+  border-radius: 10px;
+  background: var(--teal-soft);
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.decision-guide p { margin: 0.25rem 0; }
+.decision-guide p:first-child { margin-top: 0; }
+.decision-guide p:last-child { margin-bottom: 0; }
+.decision-guide-title {
+  color: var(--teal);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 0.45rem !important;
+}
+.decision-guide strong { color: var(--ink); }
+.decision-guide em { color: var(--teal); font-style: normal; font-weight: 600; }
+
 @media (min-width: 600px) {
   .app { padding-left: 0; padding-right: 0; }
   .app-header { margin: 0; padding-left: 0; padding-right: 0; display: grid; grid-template-columns: 1fr auto; align-items: end; column-gap: 2rem; }
