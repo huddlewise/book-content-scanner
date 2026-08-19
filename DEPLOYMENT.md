@@ -1,6 +1,6 @@
-# Deploying BookAware
+# Deploying KinRead
 
-This guide covers different ways to deploy BookAware so you and others can access it from anywhere with HTTPS (required for camera access on other devices).
+This guide covers different ways to deploy KinRead so you and others can access it from anywhere with HTTPS (required for camera access on other devices).
 
 ## Local Development
 
@@ -68,7 +68,7 @@ Your app gets a URL like `https://yourapp.fly.dev`
 
 Once deployed to a cloud service with HTTPS, you can:
 
-1. Share the HTTPS URL (e.g., `https://bookaware-xyz.onrender.com`)
+1. Share the HTTPS URL (e.g., `https://kinread-xyz.onrender.com`)
 2. Open it in Safari/Chrome on any phone/tablet
 3. Camera access works immediately over HTTPS
 
@@ -125,11 +125,11 @@ Creates a permanent HTTPS tunnel without port forwarding. Great if you want to k
 
 Once deployed to Render/Fly/Railway, you can add your own domain:
 
-1. Buy a domain (e.g., bookaware.family)
+1. Buy a domain (e.g., kinread.family)
 2. Set it up in your deployment service's dashboard (they have built-in DNS instructions)
 3. Takes ~10 minutes to propagate
 
-This makes the URL friendlier: `https://bookaware.family` instead of `https://bookaware-xyz.onrender.com`
+This makes the URL friendlier: `https://kinread.family` instead of `https://kinread-xyz.onrender.com`
 
 ---
 

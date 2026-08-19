@@ -36,12 +36,21 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
-const pool = process.env.DATABASE_URL
-  ? new pg.Pool({
+let pool = null;
+if (process.env.DATABASE_URL) {
+  try {
+    const databaseUrl = new URL(process.env.DATABASE_URL);
+    if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
+      throw new Error('DATABASE_URL must start with postgres:// or postgresql://');
+    }
+    pool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
-    })
-  : null;
+    });
+  } catch (err) {
+    console.warn(`WARNING: Invalid DATABASE_URL - using local JSON storage. ${err.message}`);
+  }
+}
 
 // ---------- storage (Supabase PostgreSQL in production, JSON files locally) ----------
 
@@ -392,13 +401,20 @@ const PORT = process.env.PORT || 3000;
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`BookAware running at http://localhost:${PORT}`);
+      console.log(`KinRead running at http://localhost:${PORT}`);
       if (!anthropic) {
         console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
       }
     });
   })
   .catch((err) => {
-    console.error('Could not initialize persistent storage:', err);
-    process.exit(1);
+    console.error('Could not initialize persistent storage; using local JSON storage instead:', err.message);
+    pool?.end().catch(() => {});
+    pool = null;
+    app.listen(PORT, () => {
+      console.log(`KinRead running at http://localhost:${PORT}`);
+      if (!anthropic) {
+        console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
+      }
+    });
   });

@@ -22,7 +22,7 @@ async function main() {
     return;
   }
 
-  console.log('\nBookAware setup');
+  console.log('\nKinRead setup');
   console.log('--------------');
   console.log('You need a free Anthropic API key to run analyses.');
   console.log('Get one at https://console.anthropic.com  (Settings -> API Keys)\n');

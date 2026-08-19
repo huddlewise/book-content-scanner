@@ -18,7 +18,7 @@ if [ ! -f .env ]; then
 fi
 
 echo ""
-echo "Starting BookAware..."
+echo "Starting KinRead..."
 echo "Your browser will open to http://localhost:3000 in a few seconds."
 ( sleep 2 && open http://localhost:3000 ) &
 npm start

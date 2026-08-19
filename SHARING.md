@@ -1,6 +1,6 @@
-# Sharing BookAware with Family & Friends
+# Sharing KinRead with Family & Friends
 
-This guide covers how to share BookAware with others while protecting your API key and managing costs.
+This guide covers how to share KinRead with others while protecting your API key and managing costs.
 
 ## Quick Start for Sharing
 
@@ -9,7 +9,7 @@ This guide covers how to share BookAware with others while protecting your API k
 This is easiest for non-technical people:
 
 1. Follow the [DEPLOYMENT.md](DEPLOYMENT.md) guide
-2. Share the HTTPS URL (e.g., `https://bookaware.yourfamily.com`)
+2. Share the HTTPS URL (e.g., `https://kinread.yourfamily.com`)
 3. They just bookmark it and tap to use — no installation needed
 4. Works on phones, tablets, computers — any browser with HTTPS
 
@@ -35,7 +35,7 @@ Good for showing it to 1-2 people, but the URL expires after 2 hours (or 8 hours
 
 ## Cost Management
 
-BookAware uses Anthropic's Claude API, which charges per API call:
+KinRead uses Anthropic's Claude API, which charges per API call:
 
 ### Typical Costs
 
@@ -62,7 +62,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ---
 
-## Who Should Use BookAware?
+## Who Should Use KinRead?
 
 ✅ **Parents** deciding on books for kids
 ✅ **Teachers** vetting books for classrooms
@@ -79,15 +79,15 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 - **Local storage:** Your library (books + notes) stays on the device you're using
 - **Cloud deploy:** Your library is stored on that cloud provider's servers
 - **API calls:** Book titles/ISBNs are sent to Anthropic (Claude) and Google (Books API)
-- **No tracking:** BookAware doesn't phone home or track usage
+- **No tracking:** KinRead doesn't phone home or track usage
 
-**For FERPA compliance (schools):** Avoid storing student data in BookAware. Use it as a tool to research books, but don't save analyses that include student names/IDs.
+**For FERPA compliance (schools):** Avoid storing student data in KinRead. Use it as a tool to research books, but don't save analyses that include student names/IDs.
 
 ---
 
 ## Technical Requirements for Others
 
-### To use BookAware:
+### To use KinRead:
 
 - A web browser (Chrome, Safari, Firefox, Edge — any modern browser)
 - Internet connection
@@ -101,7 +101,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ### For offline use:
 
-- Not supported yet — BookAware needs internet to search book info
+- Not supported yet — KinRead needs internet to search book info
 
 ---
 
@@ -122,7 +122,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ### Scenario 3: Classroom (30 Students)
 
-1. Teacher deploys BookAware
+1. Teacher deploys KinRead
 2. Students use it to research books (no login needed)
 3. Everyone's analyses go to the same library
 4. **Data note:** Keep spending limit low; delete the deployment after the unit

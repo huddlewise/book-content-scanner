@@ -1,4 +1,4 @@
-# BookAware
+# KinRead
 
 Scan a book's barcode, understand its plot and content, and get a sourced summary — language, violence, sexual content, substance use, and themes/representation — before deciding whether it is right for your family. Everything gets saved to a local library on your machine so you build up your own reference over time.
 

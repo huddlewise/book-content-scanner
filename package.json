@@ -1,7 +1,7 @@
 {
   "name": "book-content-scanner",
   "version": "1.0.0",
-  "description": "BookAware: Scan a book's barcode to understand its plot and content before deciding whether it is right for your family.",
+  "description": "KinRead: Scan a book's barcode to understand its plot and content before deciding whether it is right for your family.",
   "type": "module",
   "main": "server.js",
   "scripts": {
