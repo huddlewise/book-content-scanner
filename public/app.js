@@ -629,7 +629,7 @@ function renderThresholdsForm() {
           </label>
           <label class="never-ok-label">
             <input type="checkbox" class="never-ok-checkbox" data-cat="${key}" data-level="${lvl}" ${neverOk ? 'checked' : ''} />
-            Always flag (hard no)
+            Never recommend
           </label>
         </div>`;
     }).join('');
@@ -693,9 +693,9 @@ function renderKidVerdicts(categories) {
     const cls = ok ? 'stamp-clear' : 'stamp-mild';
     const hardFlagged = flagged.filter((key) => thresholdsCache[key]?.[categories[key]?.level] >= NEVER_OK_VALUE);
     const label = ok
-      ? 'Good to go'
+      ? 'Within your settings'
       : hardFlagged.length
-        ? 'Hard no for this family'
+        ? 'Never recommend'
         : 'Review first for this age';
     const detail = flagged.length ? ` — ${flagged.map((k) => CATEGORY_LABELS[k]).join(', ')}` : '';
     return `<div class="kid-verdict"><span class="kid-name">${escapeHtml(kid.name)} (${kid.age})</span><span class="kid-verdict-label ${cls}">${escapeHtml(label + detail)}</span></div>`;
