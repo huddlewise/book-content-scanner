@@ -404,6 +404,15 @@ function renderAnalysis(result) {
     ${renderContentAlert(cats)}
     <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     ${renderKidVerdicts(cats)}
+    <details class="severity-key">
+      <summary>What do mild, moderate, and strong mean?</summary>
+      <div class="severity-key-body">
+        <p><strong>Mild</strong> — brief, lower-intensity, or lightly referenced content.</p>
+        <p><strong>Moderate</strong> — clearer, more explicit, recurring, or more intense content.</p>
+        <p><strong>Strong</strong> — graphic, intense, central, or especially distressing content.</p>
+        <p class="hint">These are guidance levels, not universal ratings. Read the notes and sources alongside them.</p>
+      </div>
+    </details>
     <div class="stamp-grid">${stamps}</div>
     ${result.age_guidance ? `<p class="meta-line">Suggested age: ${escapeHtml(result.age_guidance)}</p>` : ''}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}

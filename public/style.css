@@ -912,6 +912,24 @@ input:focus, button:focus-visible, textarea:focus { outline-color: #73a9a1; bord
 .threshold-row { padding: 0.7rem 0; }
 .kid-verdicts { border: 0; background: var(--teal-soft); border-radius: 10px; }
 
+.severity-key {
+  margin: 0.7rem 0 1rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+.severity-key summary {
+  padding: 0.7rem 0;
+  color: var(--teal);
+  cursor: pointer;
+  font-weight: 600;
+}
+.severity-key-body { padding: 0 0 0.6rem; line-height: 1.4; }
+.severity-key-body p { margin: 0.35rem 0; }
+.severity-key-body strong { color: var(--ink); }
+.severity-key-body .hint { font-size: 0.74rem; }
+
 .decision-guide {
   margin: 1rem 0 1.1rem;
   padding: 0.85rem 0.95rem;
