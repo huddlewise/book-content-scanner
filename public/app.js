@@ -410,7 +410,9 @@ function renderAnalysis(result) {
         <p><strong>Mild</strong> — brief, lower-intensity, or lightly referenced content.</p>
         <p><strong>Moderate</strong> — clearer, more explicit, recurring, or more intense content.</p>
         <p><strong>Strong</strong> — graphic, intense, central, or especially distressing content.</p>
-        <p class="hint">These are guidance levels, not universal ratings. Read the notes and sources alongside them.</p>
+        <p><strong>Illustrative examples:</strong> mild violence might be a brief, non-graphic scuffle; moderate violence might include repeated fights or visible injury; strong violence might include graphic injury, torture, or killing. Mild language might be occasional mild profanity; stronger levels may be repeated, severe, or pervasive.</p>
+        <p>For sexual content, substance use, and self-harm, context matters especially: a passing reference is different from recurring, explicit, or central content.</p>
+        <p class="hint">These examples are guidance, not strict definitions or universal ratings. Read the notes and sources alongside them.</p>
       </div>
     </details>
     <div class="stamp-grid">${stamps}</div>
