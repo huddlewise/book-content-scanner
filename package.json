@@ -1,0 +1,20 @@
+{
+  "name": "book-content-scanner",
+  "version": "1.0.0",
+  "description": "BookAware: Scan a book's barcode to understand its plot and content before deciding whether it is right for your family.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

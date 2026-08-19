@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BookAware</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Libre+Franklin:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="drawer-tab">
+        <span class="drawer-eyebrow">book insight</span>
+        <h1>BookAware</h1>
+        <p class="app-tagline">Know the book before you say yes.</p>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-view="scan" role="tab" aria-selected="true">Scan</button>
+        <button class="tab" data-view="library" role="tab" aria-selected="false">Library</button>
+        <button class="tab" data-view="family" role="tab" aria-selected="false">Family</button>
+      </nav>
+    </header>
+
+    <main>
+      <!-- SCAN VIEW -->
+      <section id="view-scan" class="view active">
+
+        <div class="card entry-card">
+          <p class="card-label">Find the book</p>
+
+          <div id="camera-wrap" class="camera-wrap hidden">
+            <video id="camera-preview" playsinline muted></video>
+            <div class="camera-frame"></div>
+            <button id="btn-capture-photo" class="btn btn-primary capture-btn hidden">Capture</button>
+          </div>
+          <div class="camera-btn-row">
+            <button id="btn-toggle-camera" class="btn btn-secondary">Scan barcode</button>
+            <button id="btn-photo-cover" class="btn btn-secondary">Photograph cover</button>
+          </div>
+          <p id="camera-status" class="hint"></p>
+
+          <div class="divider"><span>or</span></div>
+
+          <form id="form-isbn" class="stack">
+            <label for="input-isbn">Enter the ISBN</label>
+            <div class="input-row">
+              <input id="input-isbn" inputmode="numeric" placeholder="e.g. 9780141345659" autocomplete="off" />
+              <button type="submit" class="btn btn-primary">Look up</button>
+            </div>
+          </form>
+
+          <button id="btn-toggle-manual" class="link-btn">Can't find a barcode? Search by title instead</button>
+
+          <form id="form-title" class="stack hidden">
+            <label for="input-title-search">Title (and author, if you know it)</label>
+            <div class="input-row">
+              <input id="input-title-search" placeholder="e.g. Percy Jackson Lightning Thief" autocomplete="off" />
+              <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+          </form>
+
+          <p id="lookup-error" class="error hidden"></p>
+        </div>
+
+        <div id="book-card" class="card book-card hidden">
+          <p class="card-label">Found it</p>
+          <div class="book-summary">
+            <img id="book-thumb" class="book-thumb" alt="" />
+            <div>
+              <h2 id="book-title"></h2>
+              <p id="book-authors" class="muted"></p>
+              <p id="book-meta" class="muted small"></p>
+            </div>
+          </div>
+          <button id="btn-analyze" class="btn btn-primary btn-block">Analyse content</button>
+        </div>
+
+        <div id="analysis-loading" class="card hidden">
+          <p class="loading-text">Researching sources<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+        </div>
+
+        <div id="analysis-card" class="card analysis-card hidden"></div>
+
+      </section>
+
+      <!-- LIBRARY VIEW -->
+      <section id="view-library" class="view">
+        <div class="card">
+          <input id="library-search" placeholder="Search your saved books" autocomplete="off" />
+          <div id="genre-chips" class="genre-chips hidden"></div>
+        </div>
+        <div id="library-list" class="stack"></div>
+        <p id="library-empty" class="hint centered hidden">No books saved yet. Scan one to get started.</p>
+      </section>
+      <!-- FAMILY VIEW -->
+      <section id="view-family" class="view">
+        <div class="card">
+          <p class="card-label">Kids</p>
+          <div id="kids-list" class="stack"></div>
+          <form id="form-add-kid" class="input-row" style="margin-top:0.75rem">
+            <input id="input-kid-name" placeholder="Name" autocomplete="off" style="flex:1" />
+            <input id="input-kid-age" type="number" min="0" max="18" placeholder="Age" style="width:4.5rem" />
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <p class="card-label">Content boundaries</p>
+          <p class="hint">For each content level, enter the minimum age at which you would be comfortable with your child encountering it. Or choose <strong>Always flag</strong> to flag it for every age. These are starting points, not rules — adjust them to fit your family.</p>
+          <div id="thresholds-form" class="stack"></div>
+          <button id="btn-save-thresholds" class="btn btn-primary btn-block">Save thresholds</button>
+          <p id="thresholds-saved" class="hint hidden">Saved.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

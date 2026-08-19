@@ -1,0 +1,35 @@
+{
+  "sexual_content": {
+    "mild": 0,
+    "moderate": 0,
+    "strong": 0
+  },
+  "language": {
+    "mild": 12,
+    "moderate": 99,
+    "strong": 99
+  },
+  "violence": {
+    "mild": 99,
+    "moderate": 99,
+    "strong": 99
+  },
+  "substance_use": {
+    "mild": 99,
+    "moderate": 99,
+    "strong": 99
+  },
+  "self_harm_suicide": {
+    "mild": 99,
+    "moderate": 99,
+    "strong": 99
+  },
+  "lgbtq_content": {
+    "minor": 99,
+    "central": 99
+  },
+  "other_themes": {
+    "minor": 0,
+    "central": 0
+  }
+}
