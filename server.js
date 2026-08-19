@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import pg from 'pg';
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,7 +36,14 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
-// ---------- local storage (simple JSON files) ----------
+const pool = process.env.DATABASE_URL
+  ? new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+    })
+  : null;
+
+// ---------- storage (Supabase PostgreSQL in production, JSON files locally) ----------
 
 async function readJsonFile(filePath, fallback) {
   await mkdir(DATA_DIR, { recursive: true });
@@ -53,8 +61,45 @@ async function writeJsonFile(filePath, data) {
   await writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-const readLibrary = () => readJsonFile(LIBRARY_PATH, []);
-const writeLibrary = (entries) => writeJsonFile(LIBRARY_PATH, entries);
+async function initializeDatabase() {
+  if (!pool) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bookaware_state (
+      name TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    )
+  `);
+  console.log('Persistent storage enabled via DATABASE_URL');
+}
+
+async function readStoredJson(name, filePath, fallback) {
+  if (!pool) return readJsonFile(filePath, fallback);
+  const result = await pool.query('SELECT data FROM bookaware_state WHERE name = $1', [name]);
+  if (result.rows.length) return result.rows[0].data;
+
+  const data = await readJsonFile(filePath, fallback);
+  await pool.query(
+    'INSERT INTO bookaware_state (name, data) VALUES ($1, $2::jsonb) ON CONFLICT (name) DO NOTHING',
+    [name, JSON.stringify(data)],
+  );
+  return data;
+}
+
+async function writeStoredJson(name, filePath, data) {
+  if (!pool) return writeJsonFile(filePath, data);
+  await pool.query(
+    `INSERT INTO bookaware_state (name, data) VALUES ($1, $2::jsonb)
+     ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data`,
+    [name, JSON.stringify(data)],
+  );
+}
+
+const readLibrary = () => readStoredJson('library', LIBRARY_PATH, []);
+const writeLibrary = (entries) => writeStoredJson('library', LIBRARY_PATH, entries);
+const readKids = () => readStoredJson('kids', KIDS_PATH, []);
+const writeKids = (kids) => writeStoredJson('kids', KIDS_PATH, kids);
+const readThresholds = () => readStoredJson('thresholds', THRESHOLDS_PATH, null);
+const writeThresholds = (thresholds) => writeStoredJson('thresholds', THRESHOLDS_PATH, thresholds);
 
 // ---------- book lookup (Google Books API) ----------
 
@@ -212,7 +257,7 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
 // ---------- family: kid profiles + age thresholds ----------
 
 app.get('/api/kids', async (_req, res) => {
-  res.json(await readJsonFile(KIDS_PATH, []));
+  res.json(await readKids());
 });
 
 app.post('/api/kids', async (req, res) => {
@@ -220,38 +265,38 @@ app.post('/api/kids', async (req, res) => {
   if (!name || typeof age !== 'number' || age < 0 || age > 18) {
     return res.status(400).json({ error: 'A kid needs a name and an age (0-18).' });
   }
-  const kids = await readJsonFile(KIDS_PATH, []);
+  const kids = await readKids();
   const kid = { id: randomUUID(), name, age };
   kids.push(kid);
-  await writeJsonFile(KIDS_PATH, kids);
+  await writeKids(kids);
   res.json(kid);
 });
 
 app.put('/api/kids/:id', async (req, res) => {
   const { name, age } = req.body;
-  const kids = await readJsonFile(KIDS_PATH, []);
+  const kids = await readKids();
   const kid = kids.find((k) => k.id === req.params.id);
   if (!kid) return res.status(404).json({ error: 'Kid profile not found.' });
   if (name) kid.name = name;
   if (typeof age === 'number') kid.age = age;
-  await writeJsonFile(KIDS_PATH, kids);
+  await writeKids(kids);
   res.json(kid);
 });
 
 app.delete('/api/kids/:id', async (req, res) => {
-  const kids = await readJsonFile(KIDS_PATH, []);
+  const kids = await readKids();
   const filtered = kids.filter((k) => k.id !== req.params.id);
-  await writeJsonFile(KIDS_PATH, filtered);
+  await writeKids(filtered);
   res.json({ deleted: filtered.length !== kids.length });
 });
 
 app.get('/api/thresholds', async (_req, res) => {
-  const saved = await readJsonFile(THRESHOLDS_PATH, null);
+  const saved = await readThresholds();
   res.json(saved || DEFAULT_THRESHOLDS);
 });
 
 app.post('/api/thresholds', async (req, res) => {
-  await writeJsonFile(THRESHOLDS_PATH, req.body);
+  await writeThresholds(req.body);
   res.json(req.body);
 });
 
@@ -344,9 +389,16 @@ app.delete('/api/library/:key', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`BookAware running at http://localhost:${PORT}`);
-  if (!anthropic) {
-    console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
-  }
-});
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`BookAware running at http://localhost:${PORT}`);
+      if (!anthropic) {
+        console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
+      }
+    });
+  })
+  .catch((err) => {
+    console.error('Could not initialize persistent storage:', err);
+    process.exit(1);
+  });
