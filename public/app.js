@@ -404,17 +404,6 @@ function renderAnalysis(result) {
     ${renderContentAlert(cats)}
     <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     ${renderKidVerdicts(cats)}
-    <details class="severity-key">
-      <summary>What do mild, moderate, and strong mean?</summary>
-      <div class="severity-key-body">
-        <p><strong>Mild</strong> — brief, lower-intensity, or lightly referenced content.</p>
-        <p><strong>Moderate</strong> — clearer, more explicit, recurring, or more intense content.</p>
-        <p><strong>Strong</strong> — graphic, intense, central, or especially distressing content.</p>
-        <p><strong>Illustrative examples:</strong> mild violence might be a brief, non-graphic scuffle; moderate violence might include repeated fights or visible injury; strong violence might include graphic injury, torture, or killing. Mild language might be occasional mild profanity; stronger levels may be repeated, severe, or pervasive.</p>
-        <p>For sexual content, substance use, and self-harm, context matters especially: a passing reference is different from recurring, explicit, or central content.</p>
-        <p class="hint">These examples are guidance, not strict definitions or universal ratings. Read the notes and sources alongside them.</p>
-      </div>
-    </details>
     <div class="stamp-grid">${stamps}</div>
     ${result.age_guidance ? `<p class="meta-line">Suggested age: ${escapeHtml(result.age_guidance)}</p>` : ''}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}

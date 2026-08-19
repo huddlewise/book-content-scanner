@@ -929,6 +929,7 @@ input:focus, button:focus-visible, textarea:focus { outline-color: #73a9a1; bord
 .severity-key-body p { margin: 0.35rem 0; }
 .severity-key-body strong { color: var(--ink); }
 .severity-key-body .hint { font-size: 0.74rem; }
+.family-severity-key { margin-top: 0; margin-bottom: 1rem; }
 
 .decision-guide {
   margin: 1rem 0 1.1rem;
