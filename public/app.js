@@ -6,6 +6,7 @@ let cameraActive = false;
 let cameraMode = null; // 'barcode' | 'photo'
 let activeStream = null;
 let barcodeHintTimer = null;
+let pendingCoverDetails = null;
 let kidsCache = [];
 let thresholdsCache = {};
 
@@ -157,6 +158,7 @@ async function capturePhoto() {
   canvas.height = cameraVideo.videoHeight * scale;
   canvas.getContext('2d').drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
   const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  const previewUrl = canvas.toDataURL('image/jpeg', 0.72);
 
   stopCamera();
   const errorEl = document.getElementById('lookup-error');
@@ -172,23 +174,47 @@ async function capturePhoto() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not read the cover');
 
-    cameraStatus.textContent = '';
-    if (data.isbn) {
-      document.getElementById('input-isbn').value = data.isbn;
-      lookupBook({ isbn: data.isbn });
-    } else if (data.title) {
-      const q = [data.title, (data.authors || []).join(' ')].filter(Boolean).join(' ');
-      document.getElementById('input-title-search').value = q;
-      lookupBook({ q });
-    } else {
+    if (!data.isbn && !data.title) {
       throw new Error("Couldn't make out the title or author clearly. Try again with better lighting, or enter it manually below.");
     }
+    pendingCoverDetails = { ...data, previewUrl };
+    renderCoverConfirmation(pendingCoverDetails);
   } catch (err) {
     cameraStatus.textContent = '';
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
   }
 }
+
+function renderCoverConfirmation(details) {
+  document.getElementById('cover-confirm-image').src = details.previewUrl;
+  document.getElementById('cover-confirm-title').textContent = details.title || 'Title not detected';
+  document.getElementById('cover-confirm-author').textContent = details.authors?.length
+    ? details.authors.join(', ')
+    : 'Author not detected';
+  document.getElementById('cover-confirm-isbn').textContent = details.isbn ? `ISBN ${details.isbn}` : 'ISBN not detected';
+  show('cover-confirm');
+}
+
+document.getElementById('btn-use-cover-details').addEventListener('click', () => {
+  if (!pendingCoverDetails) return;
+  const { isbn, title, authors } = pendingCoverDetails;
+  hide('cover-confirm');
+  if (isbn) {
+    document.getElementById('input-isbn').value = isbn;
+    lookupBook({ isbn });
+  } else {
+    const q = [title, (authors || []).join(' ')].filter(Boolean).join(' ');
+    document.getElementById('input-title-search').value = q;
+    lookupBook({ q });
+  }
+});
+
+document.getElementById('btn-retry-cover').addEventListener('click', () => {
+  pendingCoverDetails = null;
+  hide('cover-confirm');
+  startCamera('photo');
+});
 
 async function captureBarcode() {
   if (!cameraVideo.videoWidth || !cameraVideo.videoHeight || !codeReader) {

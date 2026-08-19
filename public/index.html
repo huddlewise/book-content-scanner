@@ -67,6 +67,23 @@
           <p id="lookup-error" class="error hidden"></p>
         </div>
 
+          <div id="cover-confirm" class="card cover-confirm hidden">
+            <div class="cover-confirm-preview">
+              <img id="cover-confirm-image" alt="Captured book cover" />
+              <div>
+                <p class="card-label">Check the details</p>
+                <h2 id="cover-confirm-title">Book details detected</h2>
+                <p id="cover-confirm-author" class="muted"></p>
+                <p id="cover-confirm-isbn" class="muted small"></p>
+              </div>
+            </div>
+            <p class="hint">Make sure these details match the book before looking it up.</p>
+            <div class="cover-confirm-actions">
+              <button id="btn-use-cover-details" class="btn btn-primary">Use these details</button>
+              <button id="btn-retry-cover" class="btn btn-secondary">Try another photo</button>
+            </div>
+          </div>
+
         <div id="book-card" class="card book-card hidden">
           <p class="card-label">Found it</p>
           <div class="book-summary">

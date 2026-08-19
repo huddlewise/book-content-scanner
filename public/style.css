@@ -865,6 +865,20 @@ input:focus, button:focus-visible, textarea:focus { outline-color: #73a9a1; bord
 .camera-wrap { border-radius: 10px; background: #12141a; }
 .camera-frame { border-color: rgba(255, 255, 255, 0.75); border-radius: 8px; }
 
+.cover-confirm { border-top: 3px solid var(--teal); }
+.cover-confirm-preview { display: flex; gap: 0.9rem; align-items: flex-start; }
+.cover-confirm-preview img {
+  width: 84px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--teal-soft);
+  flex-shrink: 0;
+}
+.cover-confirm-preview h2 { margin: 0; font-family: var(--font-display); font-size: 1.2rem; line-height: 1.15; }
+.cover-confirm-actions { display: flex; gap: 0.6rem; margin-top: 0.9rem; }
+.cover-confirm-actions .btn { flex: 1; }
+
 .book-card, .analysis-card { border-top: 3px solid var(--teal); }
 .book-summary h2, .library-item-title { letter-spacing: -0.04em; }
 .book-thumb { border-radius: 6px; }
@@ -913,4 +927,5 @@ input:focus, button:focus-visible, textarea:focus { outline-color: #73a9a1; bord
   .input-row .btn { flex: 0 0 auto; }
   .camera-btn-row { flex-direction: column; }
   .stamp-grid { grid-template-columns: 1fr; }
+  .cover-confirm-actions { flex-direction: column; }
 }
