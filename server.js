@@ -346,6 +346,57 @@ function extractJsonObject(text) {
   return null;
 }
 
+// Claude occasionally emits a literal (unescaped) newline/tab inside a JSON string value,
+// which JSON.parse rejects. Escape control characters that appear inside string literals.
+function escapeControlCharsInStrings(text) {
+  let inString = false;
+  let escaped = false;
+  let out = '';
+  for (const char of text) {
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      } else if (char === '\n') {
+        out += '\\n';
+        continue;
+      } else if (char === '\r') {
+        out += '\\r';
+        continue;
+      } else if (char === '\t') {
+        out += '\\t';
+        continue;
+      }
+    } else if (char === '"') {
+      inString = true;
+    }
+    out += char;
+  }
+  return out;
+}
+
+// Claude's web search sometimes leaves literal citation markers (e.g. "(cite: ...)",
+// "【cite†source】", footnote-style tokens) in generated prose instead of using structured
+// citation metadata. Strip those out of any string field before the client sees it.
+function stripCitationArtifacts(value) {
+  if (typeof value === 'string') {
+    return value
+      .replace(/[\(\[]cite[^\)\]]*[\)\]]/gi, '')
+      .replace(/[【\u3010][^】\u3011]*[】\u3011]/g, '')
+      .replace(/\s+([,.;:])/g, '$1')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+  }
+  if (Array.isArray(value)) return value.map(stripCitationArtifacts);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, stripCitationArtifacts(v)]));
+  }
+  return value;
+}
+
 app.post('/api/analyze', async (req, res) => {
   if (!anthropic) {
     return res.status(500).json({ error: 'Server has no ANTHROPIC_API_KEY configured. Add one to your .env file and restart.' });
@@ -390,7 +441,7 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
     let parsed;
     try {
       if (!cleaned) throw new Error('No complete JSON object in response');
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(escapeControlCharsInStrings(cleaned));
     } catch (parseErr) {
       console.error('Could not parse Claude response as JSON:', { stopReason: message.stop_reason, text });
       const error = message.stop_reason === 'max_tokens'
@@ -399,7 +450,7 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
       return res.status(502).json({ error });
     }
 
-    res.json(parsed);
+    res.json(stripCitationArtifacts(parsed));
   } catch (err) {
     console.error('Analyse error:', err);
     res.status(502).json({ error: 'Content analysis failed. Check your API key and connection, then try again.' });
@@ -493,7 +544,7 @@ app.post('/api/identify-cover', async (req, res) => {
 
     let parsed;
     try {
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(escapeControlCharsInStrings(cleaned));
     } catch (parseErr) {
       console.error('Could not parse cover-read response as JSON:', cleaned);
       return res.status(502).json({ error: 'Could not read that cover clearly. Try again with better lighting, or enter details manually.' });
