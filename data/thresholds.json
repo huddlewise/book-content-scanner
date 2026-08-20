@@ -1,28 +1,28 @@
 {
   "sexual_content": {
-    "mild": 0,
-    "moderate": 0,
-    "strong": 0
+    "mild": 18,
+    "moderate": 18,
+    "strong": 21
   },
   "language": {
-    "mild": 12,
-    "moderate": 99,
-    "strong": 99
+    "mild": 16,
+    "moderate": 18,
+    "strong": 21
   },
   "violence": {
-    "mild": 99,
-    "moderate": 99,
-    "strong": 99
+    "mild": 16,
+    "moderate": 18,
+    "strong": 21
   },
   "substance_use": {
-    "mild": 99,
-    "moderate": 99,
-    "strong": 99
+    "mild": 16,
+    "moderate": 18,
+    "strong": 21
   },
   "self_harm_suicide": {
-    "mild": 99,
-    "moderate": 99,
-    "strong": 99
+    "mild": 18,
+    "moderate": 18,
+    "strong": 21
   },
   "lgbtq_content": {
     "minor": 99,

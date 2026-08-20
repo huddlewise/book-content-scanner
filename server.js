@@ -5,7 +5,7 @@ import pg from 'pg';
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -30,6 +30,141 @@ const DEFAULT_THRESHOLDS = {
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+
+// ---------- shared family password gate (optional) ----------
+// If APP_PASSWORD is unset, the app is left open - fine for local dev,
+// not recommended once the URL is shared or deployed publicly.
+
+const APP_PASSWORD = process.env.APP_PASSWORD || '';
+const SESSION_COOKIE = 'kinread_session';
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+function signSession(expiresAt) {
+  const payload = String(expiresAt);
+  const sig = createHmac('sha256', APP_PASSWORD).update(payload).digest('hex');
+  return `${payload}.${sig}`;
+}
+
+function verifySession(token) {
+  if (!token) return false;
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return false;
+  const expectedSig = createHmac('sha256', APP_PASSWORD).update(payload).digest('hex');
+  const sigBuffer = Buffer.from(sig);
+  const expectedBuffer = Buffer.from(expectedSig);
+  if (sigBuffer.length !== expectedBuffer.length || !timingSafeEqual(sigBuffer, expectedBuffer)) return false;
+  const expiresAt = Number(payload);
+  return Number.isFinite(expiresAt) && Date.now() < expiresAt;
+}
+
+function parseCookies(header) {
+  const cookies = {};
+  if (!header) return cookies;
+  header.split(';').forEach((part) => {
+    const idx = part.indexOf('=');
+    if (idx === -1) return;
+    cookies[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
+  });
+  return cookies;
+}
+
+const LOGIN_PAGE_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KinRead</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #12141a; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  .card { background: #fff; border-radius: 12px; padding: 2rem; width: min(90vw, 22rem);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+  h1 { margin: 0 0 0.3rem; font-size: 1.6rem; color: #172322; }
+  p { margin: 0 0 1.2rem; color: #667572; font-size: 0.9rem; }
+  input { width: 100%; box-sizing: border-box; padding: 0.7rem; border: 1px solid #dfe6e3;
+    border-radius: 8px; font-size: 1rem; margin-bottom: 0.8rem; }
+  button { width: 100%; padding: 0.7rem; border: 0; border-radius: 8px; background: #1b4b4a;
+    color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  button:hover { background: #123a39; }
+  #error { color: #b8464f; font-size: 0.85rem; min-height: 1.1rem; margin-top: 0.6rem; }
+</style>
+</head>
+<body>
+  <form class="card" id="login-form">
+    <h1>KinRead</h1>
+    <p>Enter the family password to continue.</p>
+    <input id="password" type="password" autocomplete="current-password" autofocus />
+    <button type="submit">Continue</button>
+    <p id="error"></p>
+  </form>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('error');
+      errorEl.textContent = '';
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errorEl.textContent = data.error || 'Incorrect password.';
+          return;
+        }
+        window.location.href = '/';
+      } catch {
+        errorEl.textContent = 'Could not reach the server. Try again.';
+      }
+    });
+  </script>
+</body>
+</html>`;
+
+if (APP_PASSWORD) {
+  app.get('/login', (_req, res) => {
+    res.type('html').send(LOGIN_PAGE_HTML);
+  });
+
+  app.post('/api/login', (req, res) => {
+    const { password } = req.body || {};
+    if (typeof password !== 'string' || !password) {
+      return res.status(400).json({ error: 'Password required.' });
+    }
+    const provided = Buffer.from(password);
+    const expected = Buffer.from(APP_PASSWORD);
+    const match = provided.length === expected.length && timingSafeEqual(provided, expected);
+    if (!match) {
+      return res.status(401).json({ error: 'Incorrect password.' });
+    }
+    const expiresAt = Date.now() + SESSION_MAX_AGE_MS;
+    res.cookie(SESSION_COOKIE, signSession(expiresAt), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE_MS,
+    });
+    res.json({ ok: true });
+  });
+
+  app.get('/logout', (_req, res) => {
+    res.clearCookie(SESSION_COOKIE);
+    res.redirect('/login');
+  });
+
+  app.use((req, res, next) => {
+    if (req.path === '/login' || req.path === '/api/login') return next();
+    const cookies = parseCookies(req.headers.cookie);
+    if (verifySession(cookies[SESSION_COOKIE])) return next();
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Not authenticated.' });
+    return res.redirect('/login');
+  });
+} else {
+  console.warn('WARNING: APP_PASSWORD not set - this app is accessible without a password to anyone with the URL.');
+}
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 const anthropic = process.env.ANTHROPIC_API_KEY
