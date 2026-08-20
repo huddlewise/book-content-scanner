@@ -2,6 +2,7 @@ import readline from 'readline';
 import { writeFile, access } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { randomBytes } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENV_PATH = path.join(__dirname, '.env');
@@ -39,8 +40,12 @@ async function main() {
   }
   rl.close();
 
-  await writeFile(ENV_PATH, `ANTHROPIC_API_KEY=${key}\nPORT=3000\n`, 'utf-8');
-  console.log('\nSaved! Starting the app now...\n');
+  // Signing in uses a signed session cookie - a fixed secret keeps everyone logged in
+  // across server restarts (without one, sessions reset on every restart/deploy).
+  const sessionSecret = randomBytes(32).toString('hex');
+
+  await writeFile(ENV_PATH, `ANTHROPIC_API_KEY=${key}\nSESSION_SECRET=${sessionSecret}\nPORT=3000\n`, 'utf-8');
+  console.log('\nSaved! Starting the app now - you\'ll be asked to create a free account on first visit.\n');
 }
 
 main();

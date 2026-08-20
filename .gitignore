@@ -2,4 +2,8 @@ node_modules/
 .env
 data/library.json
 data/analysisCache.json
+data/accounts.json
+data/kids.json
+data/thresholds.json
+data/accounts/
 .DS_Store

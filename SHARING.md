@@ -76,10 +76,10 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ## Privacy & Data
 
-- **Local storage:** Your library (books + notes) stays on the device you're using
-- **Cloud deploy:** Your library is stored on that cloud provider's servers
+- **Accounts:** Everyone who uses a shared deployment creates their own free account (email + password) - each person's library, kids' profiles, and thresholds are private to their account, not shared with other users of the same link
+- **Storage:** With `DATABASE_URL` set, everything lives in your Postgres database; without it, each account's data is JSON files under `data/accounts/<id>/` on that server (lost on redeploy on most hosts)
 - **API calls:** Book titles/ISBNs are sent to Anthropic (Claude) and Google (Books API)
-- **No tracking:** KinRead doesn't phone home or track usage
+- **No tracking:** KinRead doesn't phone home or track usage beyond what's needed to run each account's free-tier analysis quota
 
 **For FERPA compliance (schools):** Avoid storing student data in KinRead. Use it as a tool to research books, but don't save analyses that include student names/IDs.
 
@@ -110,22 +110,22 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 ### Scenario 1: Family of 4
 
 1. Deploy to Render/Fly (free tier, 5 min setup)
-2. Add to bookmarks on their phones/tablets
-3. Costs: ~$50/month if they analyse 100+ books; adjust spending limit as needed
+2. Each family member creates their own free account and adds it to their phone/tablet home screen
+3. Each account gets 5 free analyses/month; costs to you scale with how many accounts upgrade or exceed the free tier
 
 ### Scenario 2: Book Club of 8 People
 
 1. Share a cloud deployment link
-2. Everyone bookmarks it
-3. Each person maintains their own library (stored locally in their browser)
-4. Shared API key means shared cost — set a group spending limit
+2. Everyone creates their own free account and bookmarks it
+3. Each person maintains their own private library - nobody sees anyone else's notes or saved books
+4. A book already analysed by one member is instantly free for everyone else (shared analysis cache) - only genuinely new books cost anything
 
 ### Scenario 3: Classroom (30 Students)
 
 1. Teacher deploys KinRead
-2. Students use it to research books (no login needed)
-3. Everyone's analyses go to the same library
-4. **Data note:** Keep spending limit low; delete the deployment after the unit
+2. Each student creates their own free account to research books (5 free analyses/month each)
+3. Each student's saved books stay private to their own account
+4. **Data note:** Keep spending limits low; delete accounts/the deployment after the unit if you don't want the data to persist
 
 ---
 

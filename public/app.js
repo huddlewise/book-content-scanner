@@ -11,6 +11,89 @@ let kidsCache = [];
 let thresholdsCache = {};
 
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
+loadAccount();
+
+// ---------- account ----------
+async function loadAccount() {
+  try {
+    const res = await fetch('/api/me');
+    if (!res.ok) return;
+    const account = await res.json();
+    const usage = account.analysesLimit
+      ? ` · ${account.analysesUsed}/${account.analysesLimit} free analyses`
+      : '';
+    document.getElementById('account-email').textContent = account.email + usage;
+    show('account-badge');
+
+    const billingBtn = document.getElementById('btn-billing');
+    billingBtn.textContent = account.plan === 'paid' ? 'Manage billing' : 'Upgrade';
+    billingBtn.classList.remove('hidden');
+    billingBtn.onclick = () => startBillingFlow(account.plan === 'paid' ? 'portal' : 'checkout');
+  } catch {
+    // not fatal - the badge just stays hidden
+  }
+}
+
+async function startBillingFlow(kind) {
+  const endpoint = kind === 'portal' ? '/api/billing/create-portal-session' : '/api/billing/create-checkout-session';
+  try {
+    const res = await fetch(endpoint, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || !data.url) throw new Error(data.error || 'Could not open billing.');
+    window.location.href = data.url;
+  } catch {
+    // Billing isn't wired up to Stripe yet - show the pricing preview instead of a raw error.
+    show('upgrade-modal');
+  }
+}
+
+document.getElementById('btn-close-upgrade').addEventListener('click', () => hide('upgrade-modal'));
+document.getElementById('btn-close-upgrade-2').addEventListener('click', () => hide('upgrade-modal'));
+document.getElementById('upgrade-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'upgrade-modal') hide('upgrade-modal');
+});
+
+// Coming back from a successful Stripe Checkout redirects here with ?upgraded=1
+if (new URLSearchParams(location.search).get('upgraded') === '1') {
+  window.history.replaceState({}, '', location.pathname);
+  window.addEventListener('DOMContentLoaded', () => {
+    const hint = document.createElement('p');
+    hint.className = 'hint centered';
+    hint.textContent = "You're on the Family plan now — thank you!";
+    document.querySelector('main')?.prepend(hint);
+  });
+}
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login';
+});
+
+// ---------- account deletion ----------
+document.getElementById('btn-open-delete').addEventListener('click', () => show('delete-account-modal'));
+document.getElementById('btn-close-delete').addEventListener('click', () => hide('delete-account-modal'));
+
+document.getElementById('input-delete-confirm').addEventListener('input', (e) => {
+  document.getElementById('btn-confirm-delete').disabled = e.target.value.trim() !== 'DELETE';
+});
+
+document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-confirm-delete');
+  const errorEl = document.getElementById('delete-error');
+  errorEl.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  try {
+    const res = await fetch('/api/account', { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Could not delete account.');
+    window.location.href = '/login';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Delete my account permanently';
+  }
+});
 
 // ---------- view switching ----------
 document.querySelectorAll('.tab').forEach((tab) => {
@@ -338,10 +421,21 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
       }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Analysis failed');
+    if (!res.ok) {
+      if (res.status === 402) {
+        document.getElementById('analysis-card').innerHTML = `
+          <p class="error">${escapeHtml(data.error)}</p>
+          <button id="btn-upgrade-cta" class="btn btn-primary btn-block">Upgrade to KinRead Family</button>`;
+        document.getElementById('btn-upgrade-cta').addEventListener('click', () => startBillingFlow('checkout'));
+        show('analysis-card');
+        return;
+      }
+      throw new Error(data.error || 'Analysis failed');
+    }
 
     currentAnalysis = data;
     renderAnalysis(data);
+    if (!data.cached) loadAccount(); // refresh the usage count shown in the header
   } catch (err) {
     document.getElementById('analysis-card').innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
     show('analysis-card');
@@ -378,7 +472,7 @@ function renderContentAlert(categories) {
     <div class="content-alert" role="alert">
       <strong>Strong content flagged</strong>
       <span>${escapeHtml(flagged.join(', '))}</span>
-      <p>This book may not be suitable for children or younger teens. Review the notes below before deciding.</p>
+      <p>Worth a closer look before you hand this one over — see the specifics below.</p>
     </div>`;
 }
 
@@ -398,6 +492,23 @@ function renderMentalModels(models) {
   return `<section class="mental-models"><p class="card-label">Ways of thinking this story explores</p>${items}</section>`;
 }
 
+function renderComparableTitles(titles) {
+  if (!Array.isArray(titles) || titles.length === 0) return '';
+  const items = titles.slice(0, 3).map((t) => {
+    if (!t?.title) return '';
+    return `
+      <div class="comparable-title">
+        <span class="comparable-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+        <div>
+          <p class="comparable-title-name">${escapeHtml(t.title)}${t.author ? ` <span class="muted">- ${escapeHtml(t.author)}</span>` : ''}</p>
+          ${t.why ? `<p class="comparable-title-why">${escapeHtml(t.why)}</p>` : ''}
+        </div>
+      </div>`;
+  }).filter(Boolean).join('');
+  if (!items) return '';
+  return `<section class="comparable-titles"><p class="card-label">If you know one of these, you'll know what to expect</p>${items}</section>`;
+}
+
 function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
@@ -415,14 +526,26 @@ function renderAnalysis(result) {
 
   const sources = (result.sources || []).map((s) => `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || s.url)}</a></li>`).join('');
 
+  // Age guidance is meant to be a short range (e.g. "8-12") - if the model ever returns a
+  // full sentence, truncate rather than let a paragraph-length pill break the chip layout.
+  const ageGuidance = result.age_guidance && result.age_guidance.length > 24
+    ? `${result.age_guidance.slice(0, 21).trim()}…`
+    : result.age_guidance;
+
+  const chips = [
+    `<span class="info-chip confidence-${escapeHtml(result.confidence || 'unknown')}">Confidence: ${escapeHtml(result.confidence || 'unknown')}</span>`,
+    ageGuidance ? `<span class="info-chip" title="${escapeHtml(result.age_guidance)}">Suggested age: ${escapeHtml(ageGuidance)}</span>` : '',
+  ].filter(Boolean).join('');
+
   card.innerHTML = `
-    <p class="card-label">Content summary — confidence: ${escapeHtml(result.confidence || 'unknown')}</p>
+    <p class="card-label">Content summary</p>
+    <div class="info-chip-row">${chips}</div>
+    ${renderKidVerdicts(cats)}
     ${renderContentAlert(cats)}
     <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
-    ${renderKidVerdicts(cats)}
     <div class="stamp-grid">${stamps}</div>
     ${renderMentalModels(result.mental_models)}
-    ${result.age_guidance ? `<p class="meta-line">Suggested age: ${escapeHtml(result.age_guidance)}</p>` : ''}
+    ${renderComparableTitles(result.comparable_titles)}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
     ${sources ? `<ul class="sources">${sources}</ul>` : ''}
     <label for="notes-field">Your notes (optional)</label>
@@ -526,8 +649,8 @@ function renderLibrary(entries) {
     list.innerHTML = '';
     empty.classList.remove('hidden');
     empty.textContent = libraryCache.length === 0
-      ? 'No books saved yet. Scan one to get started.'
-      : 'No saved books match that search.';
+      ? 'Your library is empty. Scan your first book to start building it.'
+      : "No saved books match that search.";
     return;
   }
   empty.classList.add('hidden');
@@ -546,11 +669,13 @@ function renderLibrary(entries) {
         <div style="flex:1">
           <p class="library-item-title">${escapeHtml(entry.title || 'Untitled')}</p>
           <p class="muted small">${escapeHtml((entry.authors || []).join(', '))}${genre ? ` · ${escapeHtml(genre)}` : ''}</p>
+          ${renderKidVerdictDots(entry.analysis?.categories || {})}
           <div class="library-item-badges">${badges || '<span class="mini-badge stamp-clear">No flags</span>'}</div>
           <div class="library-item-detail hidden">
             ${entry.analysis?.summary ? `<p class="small">${escapeHtml(entry.analysis.summary)}</p>` : ''}
             ${renderKidVerdicts(entry.analysis?.categories || {})}
             ${renderMentalModels(entry.analysis?.mental_models)}
+            ${renderComparableTitles(entry.analysis?.comparable_titles)}
             ${entry.parentNotes ? `<p class="small"><em>${escapeHtml(entry.parentNotes)}</em></p>` : ''}
             <div class="library-actions">
               <button class="btn-delete" data-key="${escapeHtml(entry.isbn || entry.title)}">Remove</button>
@@ -597,7 +722,7 @@ function renderKidsList() {
   const list = document.getElementById('kids-list');
   if (!list) return;
   if (!kidsCache.length) {
-    list.innerHTML = '<p class="hint">No kids added yet — add one below to start seeing personalized verdicts.</p>';
+    list.innerHTML = '<p class="hint">Add a kid below to start seeing a personalised \'good to go\' verdict for every book.</p>';
     return;
   }
   list.innerHTML = kidsCache.map((kid) => `
@@ -701,24 +826,56 @@ function computeVerdict(categories, kid, thresholds) {
       flagged.push(key);
     }
   });
-  return { ok: flagged.length === 0, flagged };
+  const hardFlagged = flagged.filter((key) => thresholds[key]?.[categories[key]?.level] >= NEVER_OK_VALUE);
+  const status = flagged.length === 0 ? 'ok' : hardFlagged.length ? 'avoid' : 'review';
+  return { ok: flagged.length === 0, flagged, hardFlagged, status };
 }
 
+const VERDICT_META = {
+  ok: {
+    label: 'Good to go',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  },
+  review: {
+    label: 'Worth discussing first',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>',
+  },
+  avoid: {
+    label: 'Not a fit for this family',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>',
+  },
+};
+
+// Full traffic-light verdict grid: one glanceable card per kid, all shown side by side
+// so a household with several kids can see everyone's status for this book at once.
 function renderKidVerdicts(categories) {
   if (!kidsCache.length) return '';
-  const rows = kidsCache.map((kid) => {
-    const { ok, flagged } = computeVerdict(categories, kid, thresholdsCache);
-    const cls = ok ? 'stamp-clear' : 'stamp-mild';
-    const hardFlagged = flagged.filter((key) => thresholdsCache[key]?.[categories[key]?.level] >= NEVER_OK_VALUE);
-    const label = ok
-      ? 'Within your settings'
-      : hardFlagged.length
-        ? 'Never recommend'
-        : 'Review first for this age';
-    const detail = flagged.length ? ` — ${flagged.map((k) => CATEGORY_LABELS[k]).join(', ')}` : '';
-    return `<div class="kid-verdict"><span class="kid-name">${escapeHtml(kid.name)} (${kid.age})</span><span class="kid-verdict-label ${cls}">${escapeHtml(label + detail)}</span></div>`;
+  const cards = kidsCache.map((kid) => {
+    const { flagged, status } = computeVerdict(categories, kid, thresholdsCache);
+    const meta = VERDICT_META[status];
+    const detail = flagged.length ? flagged.map((k) => CATEGORY_LABELS[k]).join(', ') : 'No flags for this child';
+    return `
+      <div class="verdict-card status-${status}">
+        <span class="verdict-icon">${meta.icon}</span>
+        <div class="verdict-body">
+          <span class="verdict-kid-name">${escapeHtml(kid.name)} <span class="verdict-kid-age">(${kid.age})</span></span>
+          <span class="verdict-status-label">${escapeHtml(meta.label)}</span>
+          <span class="verdict-detail">${escapeHtml(detail)}</span>
+        </div>
+      </div>`;
   }).join('');
-  return `<div class="kid-verdicts"><p class="card-label">Family decision</p><p class="hint">Based on the boundaries you set for each child.</p>${rows}</div>`;
+  return `<div class="kid-verdicts"><p class="card-label">Family decision, at a glance</p><div class="verdict-grid">${cards}</div></div>`;
+}
+
+// Tiny coloured dots for the collapsed library card - lets a parent scan a whole
+// shelf of saved books and instantly see which kids each one is (or isn't) a fit for.
+function renderKidVerdictDots(categories) {
+  if (!kidsCache.length) return '';
+  const dots = kidsCache.map((kid) => {
+    const { status } = computeVerdict(categories, kid, thresholdsCache);
+    return `<span class="verdict-dot status-${status}" title="${escapeHtml(kid.name)}: ${escapeHtml(VERDICT_META[status].label)}">${escapeHtml(kid.name[0] || '?')}</span>`;
+  }).join('');
+  return `<div class="verdict-dot-row">${dots}</div>`;
 }
 
 // ---------- helpers ----------

@@ -2,6 +2,18 @@
 
 This guide covers different ways to deploy KinRead so you and others can access it from anywhere with HTTPS (required for camera access on other devices).
 
+## Environment Variables
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | Powers content analysis and cover-photo reading |
+| `SESSION_SECRET` | Yes | Signs customer login sessions - without it, everyone gets logged out on every restart/redeploy. `npm run setup` generates one automatically for local use; set your own random 64-character value for any cloud deployment |
+| `GOOGLE_BOOKS_API_KEY` | Recommended | Avoids Google Books rate-limiting (~100 lookups/day without it) |
+| `DATABASE_URL` | Recommended for real customers | A Postgres connection string. Without it, accounts and libraries are stored as JSON files on disk - fine for local use, but most cloud hosts wipe local disk on every redeploy, which would delete every customer's account and library |
+| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` | Optional | Only needed once you're ready to accept real subscription payments |
+
+KinRead now requires every visitor to sign up for a free account (email + password) - there's no more single shared family password. Each account gets its own private library, kid profiles, and thresholds, plus 5 free content analyses a month.
+
 ## Local Development
 
 For testing on your own machine:
@@ -27,6 +39,8 @@ Open `http://localhost:3000` in your browser. Camera works fine locally.
 3. Create a new "Web Service" and connect your GitHub repo
 4. Set environment variables:
    - `ANTHROPIC_API_KEY` = your API key
+   - `SESSION_SECRET` = a random 64-character string (e.g. run `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` locally and paste the output)
+   - `DATABASE_URL` = a Render Postgres instance's connection string (add one from Render's dashboard - free tier available), so customer accounts survive redeploys
    - `NODE_ENV` = production
 5. Deploy
 
@@ -40,7 +54,7 @@ Your app will get a permanent HTTPS URL like `https://yourapp-xyz.onrender.com`
 
 1. Install Fly CLI: `npm install -g flyctl`
 2. Run `flyctl launch` in this directory
-3. Set your API key: `flyctl secrets set ANTHROPIC_API_KEY=sk-ant-...`
+3. Set your secrets: `flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... SESSION_SECRET=... DATABASE_URL=...`
 4. Deploy: `flyctl deploy`
 
 Your app gets a URL like `https://yourapp.fly.dev`
@@ -53,7 +67,7 @@ Your app gets a URL like `https://yourapp.fly.dev`
 
 1. Go to [railway.app](https://railway.app)
 2. Create a new project, connect your GitHub repo (or upload this folder)
-3. Add environment variables in the dashboard
+3. Add environment variables in the dashboard (including `SESSION_SECRET` and `DATABASE_URL` - Railway can provision a Postgres instance for you)
 4. Railway automatically deploys on each push
 
 **Cost:** Free tier with $5/month credit; paid plans start after that
@@ -105,19 +119,18 @@ Creates a permanent HTTPS tunnel without port forwarding. Great if you want to k
 
 **Your API key is sensitive.** If you're sharing this app:
 
-1. **Use per-person or limited keys:** Don't share your main API key with testers. Instead:
-   - Create a separate Anthropic API key just for sharing
-   - Set spending limits on that key at https://console.anthropic.com/account/usage-limits
-   - Rotate/delete the key once testing is over
+1. **Set a spending limit anyway:** Even with accounts and the 5-analyses/month free tier capping cost per customer, set a spending limit on your Anthropic key at https://console.anthropic.com/account/usage-limits so total usage across all customers can't run away.
 
-2. **Environment variables:** The `.env` file is git-ignored. Good — never commit API keys.
+2. **Environment variables:** The `.env` file is git-ignored. Good — never commit API keys or `SESSION_SECRET`.
 
-3. **Data privacy:** All book analyses and your library are stored locally:
-   - On localhost: in `/data/library.json` on your machine
-   - On cloud deploy: on that cloud provider's server (read their privacy policy)
-   - No data is sent to anyone except Google Books API and Anthropic's Claude
+3. **Set a real `SESSION_SECRET` per deployment.** Don't reuse your local one in production, and never commit it.
 
-4. **HTTPS required:** Phone/tablet camera requires HTTPS. Always use `https://`, never `http://`.
+4. **Data privacy:** Every customer gets their own account and private library:
+   - With `DATABASE_URL` set: stored in your Postgres database
+   - Without it: stored as JSON files under `data/accounts/<id>/` on that server's disk (lost on redeploy on most hosts - use Postgres for anything beyond local testing)
+   - Book titles/ISBNs are sent to Google Books API and Anthropic's Claude to produce each analysis
+
+5. **HTTPS required:** Phone/tablet camera requires HTTPS. Always use `https://`, never `http://`.
 
 ---
 

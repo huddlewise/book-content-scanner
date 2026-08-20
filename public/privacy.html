@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — KinRead</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .legal-page { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+    .legal-page h1 { font-family: var(--font-display); font-size: 2rem; margin: 0 0 0.3rem; }
+    .legal-page .updated { color: var(--ink-muted); font-size: 0.85rem; margin: 0 0 2rem; }
+    .legal-page h2 { font-family: var(--font-display); font-size: 1.15rem; margin: 2rem 0 0.6rem; }
+    .legal-page p, .legal-page li { font-size: 0.95rem; line-height: 1.6; color: var(--ink); }
+    .legal-page ul { padding-left: 1.3rem; }
+    .legal-page a { color: var(--primary); }
+    .back-link { display: inline-block; margin-bottom: 1.5rem; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="legal-page">
+    <a class="back-link" href="/">← Back to KinRead</a>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: 21 August 2026</p>
+
+    <p>This policy explains what information KinRead collects, how it's used, and the choices you have. KinRead is built for parents, families, and educators deciding whether a book is a fit for a child — we try to collect the minimum needed to do that well.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Account information:</strong> the email address and password you sign up with. Passwords are stored as a salted hash — we never store or can see your actual password.</li>
+      <li><strong>Kid profiles:</strong> whatever first name and age you choose to enter in the Family tab, used only to calculate content verdicts for that profile. We don't ask for or store any other information about children.</li>
+      <li><strong>Your library:</strong> books you look up or save, any personal notes you add, and your family's content-threshold settings.</li>
+      <li><strong>Usage data:</strong> how many content analyses your account has used this month, so we can apply the free-tier limit and your plan correctly.</li>
+      <li><strong>Billing information:</strong> if you subscribe to a paid plan, payment is handled entirely by Stripe — we never see or store your card details, only your subscription status.</li>
+    </ul>
+
+    <h2>How we use it</h2>
+    <p>To run the service: looking up books, generating content analyses, calculating per-kid verdicts, enforcing your plan's usage limits, and letting you sign back in. We don't use your data for advertising, and we don't sell it to anyone.</p>
+
+    <h2>Who we share it with</h2>
+    <ul>
+      <li><strong>Anthropic (Claude API):</strong> book titles, authors, and ISBNs are sent to Anthropic's Claude, which uses web search to research and summarise a book's content.</li>
+      <li><strong>Google Books API:</strong> receives your search terms (ISBN or title) to look up book details.</li>
+      <li><strong>Stripe:</strong> if you subscribe, your email and payment details are handled directly by Stripe under their own privacy policy.</li>
+    </ul>
+    <p>We don't share your library, notes, or kid profiles with any other third party.</p>
+
+    <h2>Data shared across accounts</h2>
+    <p>To keep costs (and prices) down, KinRead maintains one shared cache of book content analyses — once any customer has analysed a specific book, every other customer benefits from that same, already-paid-for result. This cache contains only the neutral analysis of the book itself (never your personal notes, your kids' names/ages, or your family's threshold settings, which always stay private to your account).</p>
+
+    <h2>How long we keep it</h2>
+    <p>We keep your account data for as long as your account is active. You can permanently delete your account and all its data at any time from the Family tab's Account section — this removes your library, notes, kid profiles, and thresholds immediately and can't be undone.</p>
+
+    <h2>Cookies</h2>
+    <p>We use a single, essential cookie to keep you signed in. It's not used for tracking or advertising, and we don't use any third-party analytics or ad cookies.</p>
+
+    <h2>Children's privacy</h2>
+    <p>KinRead is intended for use by parents, guardians, and educators — not directly by children. Kid profiles are entered by an adult account holder for their own family's use and contain only a first name and age, nothing else.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If we make material changes to this policy, we'll update the date at the top of this page.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy or your data? Contact us at <a href="mailto:hello@kinread.app">hello@kinread.app</a>.</p>
+  </div>
+</body>
+</html>

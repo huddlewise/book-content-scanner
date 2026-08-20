@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>KinRead</title>
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -13,8 +17,16 @@
   <div class="app">
     <header class="app-header">
       <div class="drawer-tab">
-        <h1>Kin<span>Re<strong>ad</strong></span></h1>
-        <p class="app-tagline">Know the book before you say yes.</p>
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+        <div>
+          <h1>Kin<span>Re<strong>ad</strong></span></h1>
+          <p class="app-tagline">Know the book before you say yes.</p>
+        </div>
+        <div id="account-badge" class="account-badge hidden">
+          <span id="account-email" class="account-email"></span>
+          <button id="btn-billing" class="link-btn hidden">Upgrade</button>
+          <button id="btn-logout" class="link-btn">Log out</button>
+        </div>
       </div>
       <nav class="tabs" role="tablist">
         <button class="tab active" data-view="scan" role="tab" aria-selected="true">
@@ -38,7 +50,7 @@
 
         <div class="scan-intro">
           <h2>A clearer yes starts here.</h2>
-          <p>Scan a barcode, photograph a cover, or search by title. We will gather the details worth knowing.</p>
+          <p>Scan a barcode, snap the cover, or search by title — we'll pull together what's actually inside, sourced from reviewers you trust.</p>
         </div>
 
         <div class="card entry-card">
@@ -80,13 +92,13 @@
             <div class="cover-confirm-preview">
               <img id="cover-confirm-image" alt="Captured book cover" />
               <div>
-                <p class="card-label">Check the details</p>
+                <p class="card-label">Does this look right?</p>
                 <h2 id="cover-confirm-title">Book details detected</h2>
                 <p id="cover-confirm-author" class="muted"></p>
                 <p id="cover-confirm-isbn" class="muted small"></p>
               </div>
             </div>
-            <p class="hint">Make sure these details match the book before looking it up.</p>
+            <p class="hint">Double-check these against the book in your hand — a wrong title or author means the wrong analysis.</p>
             <div class="cover-confirm-actions">
               <button id="btn-use-cover-details" class="btn btn-primary">Use these details</button>
               <button id="btn-retry-cover" class="btn btn-secondary">Try another photo</button>
@@ -107,7 +119,7 @@
         </div>
 
         <div id="analysis-loading" class="card hidden">
-          <p class="loading-text">Researching sources<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+          <p class="loading-text">Checking reviews and content sources<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
         </div>
 
         <div id="analysis-card" class="card analysis-card hidden"></div>
@@ -121,12 +133,12 @@
           <div id="genre-chips" class="genre-chips hidden"></div>
         </div>
         <div id="library-list" class="stack"></div>
-        <p id="library-empty" class="hint centered hidden">No books saved yet. Scan one to get started.</p>
+        <p id="library-empty" class="hint centered hidden">Your library is empty. Scan your first book to start building it.</p>
       </section>
       <!-- FAMILY VIEW -->
       <section id="view-family" class="view">
         <div class="card">
-          <p class="card-label">Kids</p>
+          <p class="card-label">Your kids</p>
           <div id="kids-list" class="stack"></div>
           <form id="form-add-kid" class="input-row" style="margin-top:0.75rem">
             <input id="input-kid-name" placeholder="Name" autocomplete="off" style="flex:1" />
@@ -137,13 +149,13 @@
 
         <div class="card">
           <p class="card-label">Content boundaries</p>
-          <p class="hint">Set the age when each content level becomes comfortable for your family. This creates a review prompt for younger children. Use <strong>Never recommend</strong> only for content you would not choose at any age.</p>
+          <p class="hint">For each content level, set the age you're comfortable with your child encountering it — younger kids get flagged for a closer look. Reserve <strong>Never recommend</strong> for anything your family rules out at any age.</p>
           <div class="decision-guide" role="note">
             <p class="decision-guide-title">How family decisions work</p>
-            <p><strong>Severity describes the book.</strong> Your settings decide what action to take.</p>
-            <p><strong>Never recommend</strong> means this content is not a fit for your family at any age.</p>
-            <p><strong>From age</strong> means younger children get <em>Review first for this age</em>.</p>
-            <p>If no rule is triggered, the result is <em>Within your settings</em>.</p>
+            <p><strong>Severity describes the book.</strong> Your settings decide what to do about it.</p>
+            <p><strong>Never recommend</strong> gives a <em>Not a fit for this family</em> verdict, at any age.</p>
+            <p><strong>From age</strong> gives younger kids a <em>Worth discussing first</em> verdict.</p>
+            <p>Nothing triggered? That's a <em>Good to go</em>.</p>
           </div>
           <details class="severity-key family-severity-key">
             <summary>What do mild, moderate, and strong mean?</summary>
@@ -158,10 +170,45 @@
           </details>
           <div id="thresholds-form" class="stack"></div>
           <button id="btn-save-thresholds" class="btn btn-primary btn-block">Save thresholds</button>
-          <p id="thresholds-saved" class="hint hidden">Saved.</p>
+          <p id="thresholds-saved" class="hint hidden">Saved — future verdicts will use these boundaries.</p>
+        </div>
+
+        <div class="card">
+          <p class="card-label">Account</p>
+          <p class="hint">Deleting your account permanently removes your library, kids' profiles, and thresholds. This can't be undone.</p>
+          <button id="btn-open-delete" class="btn btn-block" style="background:var(--stamp-red-soft);color:var(--stamp-red)">Delete my account</button>
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="upgrade-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-close-upgrade" class="modal-close" aria-label="Close">&times;</button>
+      <p class="card-label">KinRead Family</p>
+      <h2>Unlimited analyses for your whole family.</h2>
+      <p class="modal-price"><strong>$5.99</strong><span>/month</span></p>
+      <ul class="modal-features">
+        <li>Unlimited content analyses, every month</li>
+        <li>Every kid's profile and thresholds, all in one place</li>
+        <li>Priority access to new features first</li>
+      </ul>
+      <p class="hint">Billing opens shortly — thanks for your patience while we finish rolling it out.</p>
+      <button id="btn-close-upgrade-2" class="btn btn-primary btn-block">Got it</button>
+    </div>
+  </div>
+
+  <div id="delete-account-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-close-delete" class="modal-close" aria-label="Close">&times;</button>
+      <p class="card-label">Delete account</p>
+      <h2>This permanently deletes everything.</h2>
+      <p>Your library, saved notes, kids' profiles, and thresholds will be gone for good — this can't be undone.</p>
+      <label for="input-delete-confirm">Type <strong>DELETE</strong> to confirm</label>
+      <input id="input-delete-confirm" autocomplete="off" style="margin-top:0.4rem" />
+      <p id="delete-error" class="error hidden"></p>
+      <button id="btn-confirm-delete" class="btn btn-block" style="background:var(--stamp-red);color:#fff;margin-top:0.9rem" disabled>Delete my account permanently</button>
+    </div>
   </div>
 
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
