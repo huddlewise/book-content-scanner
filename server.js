@@ -12,6 +12,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const LIBRARY_PATH = path.join(DATA_DIR, 'library.json');
 const KIDS_PATH = path.join(DATA_DIR, 'kids.json');
 const THRESHOLDS_PATH = path.join(DATA_DIR, 'thresholds.json');
+const ANALYSIS_CACHE_PATH = path.join(DATA_DIR, 'analysisCache.json');
 
 // Default "comfortable from this age" settings per category and severity level.
 // These are just a starting point loosely based on common content-rating norms -
@@ -244,6 +245,18 @@ const readKids = () => readStoredJson('kids', KIDS_PATH, []);
 const writeKids = (kids) => writeStoredJson('kids', KIDS_PATH, kids);
 const readThresholds = () => readStoredJson('thresholds', THRESHOLDS_PATH, null);
 const writeThresholds = (thresholds) => writeStoredJson('thresholds', THRESHOLDS_PATH, thresholds);
+const readAnalysisCache = () => readStoredJson('analysisCache', ANALYSIS_CACHE_PATH, {});
+const writeAnalysisCache = (cache) => writeStoredJson('analysisCache', ANALYSIS_CACHE_PATH, cache);
+
+// Every family that scans the same book reuses one shared, paid Claude analysis instead of
+// paying for a fresh one. Prefer the ISBN (edition-specific); fall back to a normalized
+// title+author key for books looked up without one.
+function analysisCacheKey({ isbn, title, authors }) {
+  const cleanIsbn = (isbn || '').replace(/[^0-9Xx]/g, '');
+  if (cleanIsbn) return `isbn:${cleanIsbn.toLowerCase()}`;
+  const normalize = (s) => (s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, ' ').trim();
+  return `title:${normalize(title)}|${normalize((authors || []).join(' '))}`;
+}
 
 // ---------- book lookup (Google Books API) ----------
 
@@ -402,9 +415,15 @@ app.post('/api/analyze', async (req, res) => {
     return res.status(500).json({ error: 'Server has no ANTHROPIC_API_KEY configured. Add one to your .env file and restart.' });
   }
 
-  const { title, authors, isbn, publisher } = req.body;
+  const { title, authors, isbn, publisher, forceRefresh } = req.body;
   if (!title) {
     return res.status(400).json({ error: 'Title is required to analyse a book.' });
+  }
+
+  const cacheKey = analysisCacheKey({ isbn, title, authors });
+  const cache = await readAnalysisCache();
+  if (!forceRefresh && cache[cacheKey]) {
+    return res.json({ ...cache[cacheKey], cached: true });
   }
 
   const bookDescriptor = [
@@ -450,7 +469,14 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
       return res.status(502).json({ error });
     }
 
-    res.json(stripCitationArtifacts(parsed));
+    const result = stripCitationArtifacts(parsed);
+    // Don't cache low-confidence misses - a retry (or a future prompt tweak) might do better.
+    if (result.identified !== false) {
+      cache[cacheKey] = result;
+      await writeAnalysisCache(cache);
+    }
+
+    res.json({ ...result, cached: false });
   } catch (err) {
     console.error('Analyse error:', err);
     res.status(502).json({ error: 'Content analysis failed. Check your API key and connection, then try again.' });
