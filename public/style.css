@@ -6,9 +6,9 @@
   --ink-muted: #6a6a6a;
   --line: #ebebeb;
   --line-dark: #dddddd;
-  --teal: #0f766e;
-  --teal-dark: #0b5c56;
-  --teal-soft: #e3f4f2;
+  --teal: #2f6f68;
+  --teal-dark: #21514c;
+  --teal-soft: #e8f2f1;
   --alert-soft: #fceceb;
   --stamp-red: #c1351d;
   --stamp-orange: #c2720d;
@@ -73,9 +73,11 @@ body {
 .app-tagline {
   color: var(--ink-muted);
   font-family: var(--font-body);
-  font-size: 0.88rem;
-  line-height: 1.35;
-  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  margin: 0.3rem 0 0;
   max-width: 22rem;
 }
 
@@ -162,9 +164,11 @@ body {
 
 .card-label {
   font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
   margin: 0 0 0.75rem;
 }
 
