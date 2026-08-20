@@ -1,12 +1,12 @@
 # KinRead
 
-Scan a book's barcode, understand its plot and content, and get a sourced summary — language, violence, sexual content, substance use, and themes/representation — before deciding whether it is right for your family. Everything gets saved to a local library on your machine so you build up your own reference over time.
+Scan a book's barcode, understand its plot and content, and get a sourced summary — language, violence, sexual content, substance use, themes/representation, and useful mental models it explores — before deciding whether it is right for your family. Everything gets saved to a local library on your machine so you build up your own reference over time.
 
 ## How it works
 
 1. Find the book three ways: scan the barcode, **photograph the cover** (Claude reads the title, author, and the printed ISBN digits straight off the photo), or type the ISBN/title yourself
 2. The app looks up the book via Google Books
-3. Hit "Analyse content" — Claude searches the web (Common Sense Media, BookTrust, Kirkus, School Library Journal, etc.) and returns a sourced content summary
+3. Hit "Analyse content" — Claude searches the web (Common Sense Media, BookTrust, Kirkus, School Library Journal, etc.) and returns a sourced content summary plus up to four plot-grounded ways of thinking the story explores
 4. If you've added kids in the **Family** tab, you'll also see a verdict for each of them — "Good to go" or "Worth discussing first" — based on the age thresholds you've set
 5. Review it, add your own notes, and save it to your library
 
@@ -72,6 +72,10 @@ data/library.json       Your saved books (created automatically, gitignored)
 ## Notes on the categories
 
 Five categories use a severity scale (none/mild/moderate/strong): sexual content, language/cussing, violence, substance use, and self-harm/suicide themes. LGBTQ+ content gets its own separate field (`lgbtq_content`), apart from a broader "other themes" field (family structure, disability, race/culture, religion, grief, etc.) — both reported as neutral, factual information, styled the same understated way regardless of the answer rather than as a "concern" alongside the severity-scored categories. Feel free to adjust the wording in `ANALYSIS_SCHEMA_PROMPT` in `server.js` if you want the categories to work differently.
+
+## Mental models
+
+Each new analysis can also identify up to four transferable ways of thinking that the story illustrates, such as empathy, cause and effect, trade-offs, incentives, or questioning assumptions. They are grounded in particular plot points or character choices, include a caveat where the story complicates the lesson, and are informational only: they do not influence family age thresholds or verdicts. Older saved entries simply do not show this section.
 
 ## Per-kid age profiles
 

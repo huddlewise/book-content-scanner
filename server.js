@@ -310,6 +310,14 @@ const ANALYSIS_SCHEMA_PROMPT = `Respond with ONLY a single valid JSON object - n
     "lgbtq_content": { "level": "none" | "minor" | "central", "notes": "factual, neutral description of any LGBTQ+ characters, relationships, or themes - e.g. who, and how central to the plot - or empty string if none" },
     "other_themes": { "level": "none" | "minor" | "central", "notes": "neutral note on other notable identity or thematic content - family structure, disability, race/culture, religion, grief, etc. - or empty string" }
   },
+  "mental_models": [
+    {
+      "name": "short, plain-language name of a transferable way of thinking",
+      "evidence": "specific plot, character choice, or recurring idea that illustrates it",
+      "takeaway": "one neutral sentence about the useful lesson a child may take from it",
+      "caveat": "brief note if the book complicates, challenges, or models an unhelpful version of the idea; otherwise empty string"
+    }
+  ],
   "age_guidance": "publisher/reviewer suggested age or grade range if known, otherwise empty string",
   "sources": [ { "title": "source name", "url": "https://..." } ],
   "caveat": "note here if identification is uncertain, sources disagree, or coverage is thin - otherwise empty string"
@@ -359,7 +367,7 @@ app.post('/api/analyze', async (req, res) => {
 
 ${bookDescriptor}
 
-Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
+Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
 
 ${ANALYSIS_SCHEMA_PROMPT}`;
 

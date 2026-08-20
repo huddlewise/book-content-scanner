@@ -382,6 +382,22 @@ function renderContentAlert(categories) {
     </div>`;
 }
 
+function renderMentalModels(models) {
+  if (!Array.isArray(models) || models.length === 0) return '';
+  const items = models.slice(0, 4).map((model) => {
+    if (!model?.name) return '';
+    return `
+      <article class="mental-model">
+        <h3>${escapeHtml(model.name)}</h3>
+        ${model.evidence ? `<p class="mental-model-evidence">In the story: ${escapeHtml(model.evidence)}</p>` : ''}
+        ${model.takeaway ? `<p>${escapeHtml(model.takeaway)}</p>` : ''}
+        ${model.caveat ? `<p class="mental-model-caveat">Keep in mind: ${escapeHtml(model.caveat)}</p>` : ''}
+      </article>`;
+  }).filter(Boolean).join('');
+  if (!items) return '';
+  return `<section class="mental-models"><p class="card-label">Ways of thinking this story explores</p>${items}</section>`;
+}
+
 function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
@@ -405,6 +421,7 @@ function renderAnalysis(result) {
     <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     ${renderKidVerdicts(cats)}
     <div class="stamp-grid">${stamps}</div>
+    ${renderMentalModels(result.mental_models)}
     ${result.age_guidance ? `<p class="meta-line">Suggested age: ${escapeHtml(result.age_guidance)}</p>` : ''}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
     ${sources ? `<ul class="sources">${sources}</ul>` : ''}
@@ -533,6 +550,7 @@ function renderLibrary(entries) {
           <div class="library-item-detail hidden">
             ${entry.analysis?.summary ? `<p class="small">${escapeHtml(entry.analysis.summary)}</p>` : ''}
             ${renderKidVerdicts(entry.analysis?.categories || {})}
+            ${renderMentalModels(entry.analysis?.mental_models)}
             ${entry.parentNotes ? `<p class="small"><em>${escapeHtml(entry.parentNotes)}</em></p>` : ''}
             <div class="library-actions">
               <button class="btn-delete" data-key="${escapeHtml(entry.isbn || entry.title)}">Remove</button>
