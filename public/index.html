@@ -6,7 +6,7 @@
   <title>KinRead</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -17,9 +17,18 @@
         <p class="app-tagline">Know the book before you say yes.</p>
       </div>
       <nav class="tabs" role="tablist">
-        <button class="tab active" data-view="scan" role="tab" aria-selected="true">Scan</button>
-        <button class="tab" data-view="library" role="tab" aria-selected="false">Library</button>
-        <button class="tab" data-view="family" role="tab" aria-selected="false">Family</button>
+        <button class="tab active" data-view="scan" role="tab" aria-selected="true">
+          <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/></svg></span>
+          <span>Scan</span>
+        </button>
+        <button class="tab" data-view="library" role="tab" aria-selected="false">
+          <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg></span>
+          <span>Library</span>
+        </button>
+        <button class="tab" data-view="family" role="tab" aria-selected="false">
+          <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20c0-3 2.5-5.5 5.5-5.5S14.5 17 14.5 20"/><circle cx="17" cy="9" r="2.2"/><path d="M15.2 14.3c2.4.4 4.1 2.4 4.1 5.2"/></svg></span>
+          <span>Family</span>
+        </button>
       </nav>
     </header>
 
