@@ -228,23 +228,31 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>KinRead</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root { --primary: #4f46e5; --gradient-brand: linear-gradient(135deg, #4f46e5 0%, #7c5cf0 48%, #0d9488 100%); }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: #f3f4fb; font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 1rem; box-sizing: border-box; }
+    background: #f3f4fb; font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif; padding: 1rem; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
   .card { background: #fff; border-radius: 20px; padding: 2rem; width: min(92vw, 24rem);
     box-shadow: 0 18px 40px rgba(43,48,120,0.16); border-top: 3px solid transparent; border-image: var(--gradient-brand) 1; }
-  h1 { margin: 0 0 0.3rem; font-size: 1.6rem; color: #1b1d2b; }
-  p.sub { margin: 0 0 1.3rem; color: #676c85; font-size: 0.9rem; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--gradient-brand);
+    box-shadow: 0 10px 26px rgba(79,70,229,0.32); display: flex; align-items: center; justify-content: center; margin-bottom: 0.9rem; }
+  .brand-mark svg { width: 18px; height: 18px; stroke: #fff; }
+  h1 { margin: 0 0 0.3rem; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.7rem; color: #1b1d2b; letter-spacing: -0.02em; }
+  h1 span { background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p.sub { margin: 0 0 1.3rem; color: #676c85; font-size: 0.9rem; font-family: 'Public Sans', sans-serif; }
   input { width: 100%; box-sizing: border-box; padding: 0.7rem 0.85rem; border: 1px solid #d3d5ea;
-    border-radius: 10px; font-size: 1rem; margin-bottom: 0.8rem; }
+    border-radius: 10px; font-size: 1rem; margin-bottom: 0.8rem; font-family: 'Public Sans', sans-serif; }
   input:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
   button { width: 100%; padding: 0.75rem; border: 0; border-radius: 10px; background: var(--gradient-brand);
-    color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; }
+    color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: 'Public Sans', sans-serif; }
   button:hover { opacity: 0.92; }
   #error { color: #d9382a; font-size: 0.85rem; min-height: 1.1rem; margin-top: 0.6rem; }
   .toggle { text-align: center; margin-top: 1rem; font-size: 0.85rem; color: #676c85; }
-  .toggle button { all: unset; color: var(--primary); font-weight: 700; cursor: pointer; }
+  .toggle button { all: unset; color: var(--primary); font-weight: 700; cursor: pointer; font-family: 'Public Sans', sans-serif; font-size: inherit; }
   .legal-consent { font-size: 0.78rem; color: #676c85; text-align: center; margin: 0.9rem 0 0; }
   .legal-consent a { color: var(--primary); }
   .hidden { display: none; }
@@ -252,7 +260,8 @@ const AUTH_PAGE_HTML = `<!doctype html>
 </head>
 <body>
   <form class="card" id="auth-form">
-    <h1>KinRead</h1>
+    <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+    <h1>Kin<span>Read</span></h1>
     <p class="sub" id="auth-sub">Sign in to your account.</p>
     <input id="email" type="email" placeholder="Email" autocomplete="email" autofocus required />
     <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
