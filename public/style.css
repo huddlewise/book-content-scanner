@@ -1030,7 +1030,10 @@ input:focus, button:focus-visible, textarea:focus {
   margin-bottom: 0.5rem !important;
 }
 .decision-guide strong { color: var(--ink); }
-.decision-guide em { color: var(--teal); font-style: normal; font-weight: 700; }
+.decision-guide em { font-style: normal; font-weight: 700; }
+.decision-guide em.verdict-term-ok { color: var(--stamp-green); }
+.decision-guide em.verdict-term-review { color: var(--stamp-amber); }
+.decision-guide em.verdict-term-avoid { color: var(--stamp-red); }
 
 /* ---------- responsive ---------- */
 @media (min-width: 720px) {

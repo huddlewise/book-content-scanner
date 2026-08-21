@@ -30,7 +30,10 @@ async function loadAccount() {
     const billingBtn = document.getElementById('btn-billing');
     billingBtn.textContent = account.plan === 'paid' ? 'Manage billing' : 'Upgrade';
     billingBtn.classList.remove('hidden');
-    billingBtn.onclick = () => startBillingFlow(account.plan === 'paid' ? 'portal' : 'checkout');
+    billingBtn.onclick = () => {
+      document.getElementById('account-dropdown').classList.add('hidden');
+      startBillingFlow(account.plan === 'paid' ? 'portal' : 'checkout');
+    };
   } catch {
     // not fatal - the menu just stays hidden
   }
