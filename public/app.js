@@ -19,10 +19,12 @@ async function loadAccount() {
     const res = await fetch('/api/me');
     if (!res.ok) return;
     const account = await res.json();
-    const usage = account.analysesLimit
-      ? ` · ${account.analysesUsed}/${account.analysesLimit} free analyses`
-      : '';
-    document.getElementById('account-email').textContent = account.email + usage;
+
+    document.getElementById('account-trigger').textContent = account.email[0]?.toUpperCase() || '?';
+    document.getElementById('account-email').textContent = account.email;
+    document.getElementById('account-usage').textContent = account.analysesLimit
+      ? `${account.analysesUsed}/${account.analysesLimit} free analyses this month`
+      : 'KinRead Family plan';
     show('account-badge');
 
     const billingBtn = document.getElementById('btn-billing');
@@ -30,9 +32,23 @@ async function loadAccount() {
     billingBtn.classList.remove('hidden');
     billingBtn.onclick = () => startBillingFlow(account.plan === 'paid' ? 'portal' : 'checkout');
   } catch {
-    // not fatal - the badge just stays hidden
+    // not fatal - the menu just stays hidden
   }
 }
+
+document.getElementById('account-trigger').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('account-dropdown');
+  const nowOpen = dropdown.classList.toggle('hidden') === false;
+  document.getElementById('account-trigger').setAttribute('aria-expanded', String(nowOpen));
+});
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('account-badge');
+  if (!menu.contains(e.target)) {
+    document.getElementById('account-dropdown').classList.add('hidden');
+    document.getElementById('account-trigger').setAttribute('aria-expanded', 'false');
+  }
+});
 
 async function startBillingFlow(kind) {
   const endpoint = kind === 'portal' ? '/api/billing/create-portal-session' : '/api/billing/create-checkout-session';

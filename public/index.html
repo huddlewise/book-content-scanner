@@ -23,10 +23,14 @@
           <p class="app-tagline">Know the book before you say yes.</p>
         </div>
       </div>
-      <div id="account-badge" class="account-badge hidden">
-        <span id="account-email" class="account-email"></span>
-        <button id="btn-billing" class="link-btn hidden">Upgrade</button>
-        <button id="btn-logout" class="link-btn">Log out</button>
+      <div id="account-badge" class="account-menu hidden">
+        <button id="account-trigger" class="account-avatar" aria-haspopup="true" aria-expanded="false" aria-label="Account menu"></button>
+        <div id="account-dropdown" class="account-dropdown hidden">
+          <p id="account-email" class="account-dropdown-email"></p>
+          <p id="account-usage" class="account-dropdown-usage"></p>
+          <button id="btn-billing" class="account-dropdown-item hidden">Upgrade</button>
+          <button id="btn-logout" class="account-dropdown-item">Log out</button>
+        </div>
       </div>
       <nav class="tabs" role="tablist">
         <button class="tab active" data-view="scan" role="tab" aria-selected="true">

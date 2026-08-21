@@ -76,26 +76,71 @@ body {
   gap: 0.65rem;
 }
 
-.account-badge {
+/* account menu: a small avatar trigger + dropdown, so the header never has to fit a
+   full email address and multiple buttons inline (which crowded/overflowed the header) */
+.account-menu {
+  position: relative;
+  margin-bottom: 0.8rem;
+  justify-self: end;
+}
+.account-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  margin-bottom: 0.8rem;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
 }
-.account-email {
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.account-badge .link-btn { padding: 0; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
+.account-avatar:hover { box-shadow: var(--shadow-glow); }
 
-@media (max-width: 560px) {
-  .account-email { max-width: none; }
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: max-content;
+  max-width: 16rem;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card-hover);
+  padding: 0.9rem;
+  z-index: 30;
 }
+.account-dropdown-email {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin: 0 0 0.2rem;
+  word-break: break-all;
+}
+.account-dropdown-usage {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  margin: 0 0 0.7rem;
+}
+.account-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--line);
+  padding: 0.55rem 0 0.15rem;
+  margin-top: 0.4rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+}
+.account-dropdown-item:last-child { color: var(--ink); }
+
 
 .brand-mark {
   width: 34px;
@@ -997,7 +1042,7 @@ input:focus, button:focus-visible, textarea:focus {
     row-gap: 0.5rem;
   }
   .drawer-tab { grid-area: brand; margin-bottom: 0; }
-  .account-badge { grid-area: account; margin-bottom: 0; justify-content: flex-end; }
+  .account-menu { grid-area: account; margin-bottom: 0; }
   .tabs {
     grid-area: tabs;
     position: static; background: none; box-shadow: none; border: none;
