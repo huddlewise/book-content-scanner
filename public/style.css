@@ -1047,6 +1047,7 @@ input:focus, button:focus-visible, textarea:focus {
     grid-area: tabs;
     position: static; background: none; box-shadow: none; border: none;
     padding-top: 0.7rem; margin-top: 0.1rem;
+    padding-left: calc(34px + 0.65rem); /* aligns with the wordmark text, not the brand-mark icon */
     border-top: 1px solid var(--line);
   }
   .tab { flex-direction: row; font-size: 0.92rem; }
