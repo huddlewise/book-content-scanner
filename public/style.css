@@ -77,17 +77,16 @@ body {
 }
 
 .account-badge {
-  margin-left: auto;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.7rem;
-  flex-wrap: nowrap;
-  min-width: 0;
+  margin-bottom: 0.8rem;
 }
 .account-email {
   font-size: 0.8rem;
   color: var(--ink-muted);
-  max-width: 8rem;
+  max-width: 12rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -95,7 +94,6 @@ body {
 .account-badge .link-btn { padding: 0; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
 
 @media (max-width: 560px) {
-  .account-badge { flex-basis: 100%; margin-left: 0; justify-content: flex-start; }
   .account-email { max-width: none; }
 }
 
@@ -994,11 +992,18 @@ input:focus, button:focus-visible, textarea:focus {
   .app-header {
     display: grid;
     grid-template-columns: 1fr auto;
-    align-items: end;
+    grid-template-areas: "brand account" "tabs tabs";
     column-gap: 2rem;
+    row-gap: 0.5rem;
   }
-  .drawer-tab { margin-bottom: 0.4rem; }
-  .tabs { position: static; background: none; box-shadow: none; border: none; padding: 0; }
+  .drawer-tab { grid-area: brand; margin-bottom: 0; }
+  .account-badge { grid-area: account; margin-bottom: 0; justify-content: flex-end; }
+  .tabs {
+    grid-area: tabs;
+    position: static; background: none; box-shadow: none; border: none;
+    padding-top: 0.7rem; margin-top: 0.1rem;
+    border-top: 1px solid var(--line);
+  }
   .tab { flex-direction: row; font-size: 0.92rem; }
   .tab-icon { display: none; }
 }

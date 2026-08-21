@@ -86,7 +86,7 @@ Once deployed to a cloud service with HTTPS, you can:
 2. Open it in Safari/Chrome on any phone/tablet
 3. Camera access works immediately over HTTPS
 
-**No extra setup needed** — just bookmark it.
+**No extra setup needed**, just bookmark it.
 
 ---
 
@@ -121,7 +121,7 @@ Creates a permanent HTTPS tunnel without port forwarding. Great if you want to k
 
 1. **Set a spending limit anyway:** Even with accounts and the 5-analyses/month free tier capping cost per customer, set a spending limit on your Anthropic key at https://console.anthropic.com/account/usage-limits so total usage across all customers can't run away.
 
-2. **Environment variables:** The `.env` file is git-ignored. Good — never commit API keys or `SESSION_SECRET`.
+2. **Environment variables:** The `.env` file is git-ignored. Good, never commit API keys or `SESSION_SECRET`.
 
 3. **Set a real `SESSION_SECRET` per deployment.** Don't reuse your local one in production, and never commit it.
 

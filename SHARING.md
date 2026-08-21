@@ -10,8 +10,8 @@ This is easiest for non-technical people:
 
 1. Follow the [DEPLOYMENT.md](DEPLOYMENT.md) guide
 2. Share the HTTPS URL (e.g., `https://kinread.yourfamily.com`)
-3. They just bookmark it and tap to use — no installation needed
-4. Works on phones, tablets, computers — any browser with HTTPS
+3. They just bookmark it and tap to use, no installation needed
+4. Works on phones, tablets, computers, any browser with HTTPS
 
 **Best for:** Family, book clubs, school groups
 
@@ -49,13 +49,13 @@ KinRead uses Anthropic's Claude API, which charges per API call:
 
 1. Go to https://console.anthropic.com/account/usage-limits
 2. Set a monthly budget (e.g., $50/month)
-3. Once hit, the API key stops working — no surprise bills
+3. Once hit, the API key stops working, no surprise bills
 
 **For testers, use a separate API key:**
 
 ```
-# Key 1: Your main key — for personal use
-# Key 2: Tester key — set a low spending limit ($5-10), delete after testing
+# Key 1: Your main key, for personal use
+# Key 2: Tester key, set a low spending limit ($5-10), delete after testing
 ```
 
 Create and manage keys at https://console.anthropic.com/account/api-keys
@@ -89,19 +89,19 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ### To use KinRead:
 
-- A web browser (Chrome, Safari, Firefox, Edge — any modern browser)
+- A web browser (Chrome, Safari, Firefox, Edge, any modern browser)
 - Internet connection
 - That's it! No installation needed if you're sharing a cloud deployment
 
 ### For camera features:
 
-- Must be on HTTPS (not HTTP) — cloud deployments are automatically HTTPS
+- Must be on HTTPS (not HTTP); cloud deployments are automatically HTTPS
 - Browser must have camera permission granted
 - Works on phones, tablets, laptops
 
 ### For offline use:
 
-- Not supported yet — KinRead needs internet to search book info
+- Not supported yet: KinRead needs internet to search book info
 
 ---
 
@@ -136,7 +136,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 - Usually a popup when first visiting HTTPS URL
 
 **"The analysis takes forever"**
-- Normal — Anthropic's servers are sometimes busy
+- Normal, Anthropic's servers are sometimes busy
 - Typical wait: 30-60 seconds
 - If >2 minutes, they can close and try again
 
@@ -155,7 +155,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 If you're running a shared deployment:
 
-- **Weekly:** Check https://console.anthropic.com/account/usage — make sure you're staying under budget
+- **Weekly:** Check https://console.anthropic.com/account/usage, make sure you're staying under budget
 - **Monthly:** Review if people are still using it; delete if not needed
 - **As updates come out:** Pull the latest code and redeploy
 

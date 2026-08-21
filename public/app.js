@@ -59,7 +59,7 @@ if (new URLSearchParams(location.search).get('upgraded') === '1') {
   window.addEventListener('DOMContentLoaded', () => {
     const hint = document.createElement('p');
     hint.className = 'hint centered';
-    hint.textContent = "You're on the Family plan now — thank you!";
+    hint.textContent = "You're on the Family plan now. Thank you!";
     document.querySelector('main')?.prepend(hint);
   });
 }
@@ -472,7 +472,7 @@ function renderContentAlert(categories) {
     <div class="content-alert" role="alert">
       <strong>Strong content flagged</strong>
       <span>${escapeHtml(flagged.join(', '))}</span>
-      <p>Worth a closer look before you hand this one over — see the specifics below.</p>
+      <p>Worth a closer look before you hand this one over. See the specifics below.</p>
     </div>`;
 }
 
@@ -576,7 +576,7 @@ async function saveCurrentBook() {
     if (!res.ok) throw new Error('Save failed');
     btn.textContent = 'Saved ✓';
   } catch (err) {
-    btn.textContent = 'Could not save — try again';
+    btn.textContent = 'Could not save, try again';
     btn.disabled = false;
   }
 }
