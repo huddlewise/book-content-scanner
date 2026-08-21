@@ -89,8 +89,24 @@
             </div>
           </form>
 
+          <button id="btn-toggle-lesson" class="link-btn">Looking for a lesson, not a book? Search by idea instead</button>
+
+          <form id="form-lesson" class="stack hidden">
+            <label for="input-lesson">Describe the idea or lesson</label>
+            <div class="input-row">
+              <input id="input-lesson" placeholder="e.g. holding two competing ideas at once" autocomplete="off" />
+              <button type="submit" class="btn btn-primary">Find books</button>
+            </div>
+          </form>
+
           <p id="lookup-error" class="error hidden"></p>
         </div>
+
+        <div id="lesson-loading" class="card hidden">
+          <p class="loading-text">Thinking of stories that fit<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+        </div>
+
+        <div id="lesson-results" class="card hidden"></div>
 
           <div id="cover-confirm" class="card cover-confirm hidden">
             <div class="cover-confirm-preview">

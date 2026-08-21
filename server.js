@@ -14,6 +14,7 @@ const LIBRARY_PATH = path.join(DATA_DIR, 'library.json');
 const KIDS_PATH = path.join(DATA_DIR, 'kids.json');
 const THRESHOLDS_PATH = path.join(DATA_DIR, 'thresholds.json');
 const ANALYSIS_CACHE_PATH = path.join(DATA_DIR, 'analysisCache.json');
+const LESSON_SEARCH_CACHE_PATH = path.join(DATA_DIR, 'lessonSearchCache.json');
 const ACCOUNTS_PATH = path.join(DATA_DIR, 'accounts.json');
 
 // Default "comfortable from this age" settings per category and severity level.
@@ -675,6 +676,8 @@ const readThresholds = (accountId) => readAccountJson(accountId, 'thresholds', n
 const writeThresholds = (accountId, thresholds) => writeAccountJson(accountId, 'thresholds', thresholds);
 const readAnalysisCache = () => readStoredJson('analysisCache', ANALYSIS_CACHE_PATH, {});
 const writeAnalysisCache = (cache) => writeStoredJson('analysisCache', ANALYSIS_CACHE_PATH, cache);
+const readLessonSearchCache = () => readStoredJson('lessonSearchCache', LESSON_SEARCH_CACHE_PATH, {});
+const writeLessonSearchCache = (cache) => writeStoredJson('lessonSearchCache', LESSON_SEARCH_CACHE_PATH, cache);
 
 // Accounts stay in the shared (non-per-account) store, keyed by email for signup/login lookup.
 const readAccounts = () => readStoredJson('accounts', ACCOUNTS_PATH, []);
@@ -956,6 +959,73 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
   } catch (err) {
     console.error('Analyse error:', err);
     res.status(502).json({ error: 'Content analysis failed. Check your API key and connection, then try again.' });
+  }
+});
+
+// ---------- discover books by lesson/mental model (search by idea, not title) ----------
+
+function lessonSearchCacheKey(query) {
+  return query.toLowerCase().trim().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+app.post('/api/discover-by-lesson', analyzeRateLimit, async (req, res) => {
+  if (!anthropic) {
+    return res.status(500).json({ error: 'Server has no ANTHROPIC_API_KEY configured. Add one to your .env file and restart.' });
+  }
+  const { query } = req.body;
+  if (!query || query.trim().length < 3) {
+    return res.status(400).json({ error: 'Describe the idea or lesson you\'re looking for.' });
+  }
+
+  const cacheKey = lessonSearchCacheKey(query);
+  const cache = await readLessonSearchCache();
+  if (cache[cacheKey]) return res.json({ ...cache[cacheKey], cached: true });
+
+  const quota = await checkAndConsumeAnalysisQuota(req.accountId);
+  if (!quota.ok) return res.status(402).json({ error: quota.error });
+
+  const prompt = `A parent wants to find children's or young-adult storybooks (real, existing published books - never invent a title) that genuinely illustrate the following idea or lesson through their plot or characters:
+
+"${query.trim()}"
+
+Suggest up to 5 real storybooks that are strong, genuine examples, not just tangentially related. For each, briefly explain how the story illustrates the idea, grounded in specific plot points or character choices, and include an approximate age range. If you can't confidently think of good real examples, return fewer (even zero) rather than inventing titles.
+
+Respond with ONLY this JSON, no other text: { "books": [ { "title": "...", "author": "...", "ageRange": "...", "why": "..." } ] }`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-5',
+      max_tokens: 4000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = message.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n')
+      .trim();
+    const cleaned = extractJsonObject(text);
+
+    let parsed;
+    try {
+      if (!cleaned) throw new Error('No complete JSON object in response');
+      parsed = JSON.parse(escapeControlCharsInStrings(cleaned));
+    } catch (parseErr) {
+      console.error('Could not parse lesson-search response as JSON:', { stopReason: message.stop_reason, text });
+      const error = message.stop_reason === 'max_tokens'
+        ? 'That search took longer than expected. Try a shorter or more specific description.'
+        : 'Could not find book suggestions for that. Try rephrasing.';
+      return res.status(502).json({ error });
+    }
+
+    const result = stripCitationArtifacts(parsed);
+    cache[cacheKey] = result;
+    await writeLessonSearchCache(cache);
+    res.json({ ...result, cached: false });
+  } catch (err) {
+    console.error('Lesson search error:', err);
+    res.status(502).json({ error: 'Could not search for books right now. Try again.' });
   }
 });
 

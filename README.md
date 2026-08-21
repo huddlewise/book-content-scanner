@@ -88,6 +88,10 @@ The **Family** tab lets you add each kid (name + age) and set family-wide thresh
 
 The default thresholds (in `DEFAULT_THRESHOLDS` in `server.js`) are a loose starting point based on common content-rating conventions, not a claim about what's right for any particular kid or family. Edit them freely in the Family tab. `lgbtq_content` and `other_themes` default to 0 (never flagged), consistent with treating them as neutral information rather than a severity scale; raise them above 0 there too if you'd rather this family's verdicts factor them in.
 
+## Search by idea
+
+On the Scan tab, "Looking for a lesson, not a book? Search by idea instead" lets you describe a concept you want your kid to encounter, for example "holding two competing ideas at once because both could be true", and get real storybook suggestions that genuinely illustrate it, each with an age range and a short explanation grounded in the plot. Tap "Look up this book" on any result to pull it straight into the normal lookup/analyse/save flow. This uses the same Claude web-search call (and the same free-tier quota) as analysing a book, and results are cached per search phrase so repeat searches are free.
+
 ## Genre search
 
 The Library tab shows genre chips (Fantasy, Humorous Stories, etc.) pulled from whatever Google Books tagged each saved book with. Tap one to filter your library to that genre, or use the search box, which also matches genre text. Genres come from Google Books' own categories, so coverage varies by title; books it didn't tag won't show a genre and won't appear under any chip.

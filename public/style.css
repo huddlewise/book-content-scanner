@@ -411,6 +411,7 @@ input:focus, button:focus-visible, textarea:focus {
 .btn-block { width: 100%; margin-top: 0.9rem; }
 
 .link-btn {
+  display: block;
   background: none;
   border: none;
   color: var(--ink);

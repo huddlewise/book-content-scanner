@@ -387,6 +387,86 @@ document.getElementById('form-title').addEventListener('submit', (e) => {
   if (q) lookupBook({ q });
 });
 
+// ---------- search by lesson/idea (mental model discovery) ----------
+document.getElementById('btn-toggle-lesson').addEventListener('click', (e) => {
+  document.getElementById('form-lesson').classList.toggle('hidden');
+  const nowVisible = !document.getElementById('form-lesson').classList.contains('hidden');
+  e.target.textContent = nowVisible ? 'Hide idea search' : 'Looking for a lesson, not a book? Search by idea instead';
+});
+
+document.getElementById('form-lesson').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const query = document.getElementById('input-lesson').value.trim();
+  if (!query) return;
+
+  hide('lesson-results');
+  hide('book-card');
+  hide('analysis-card');
+  show('lesson-loading');
+
+  try {
+    const res = await fetch('/api/discover-by-lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 402) {
+        document.getElementById('lesson-results').innerHTML = `
+          <p class="error">${escapeHtml(data.error)}</p>
+          <button id="btn-upgrade-cta-lesson" class="btn btn-primary btn-block">Upgrade to KinRead Family</button>`;
+        document.getElementById('btn-upgrade-cta-lesson').addEventListener('click', () => startBillingFlow('checkout'));
+        show('lesson-results');
+        return;
+      }
+      throw new Error(data.error || 'Search failed');
+    }
+    renderLessonResults(data.books || [], query);
+    if (!data.cached) loadAccount(); // this search costs the same as an analysis, so it counts too
+  } catch (err) {
+    document.getElementById('lesson-results').innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
+    show('lesson-results');
+  } finally {
+    hide('lesson-loading');
+  }
+});
+
+function renderLessonResults(books, query) {
+  const container = document.getElementById('lesson-results');
+  if (!books.length) {
+    container.innerHTML = `<p class="hint">Couldn't find confident matches for "${escapeHtml(query)}". Try rephrasing, or search for a specific title instead.</p>`;
+    show('lesson-results');
+    return;
+  }
+  const bookIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>';
+  container.innerHTML = `
+    <p class="card-label">Stories that explore "${escapeHtml(query)}"</p>
+    ${books.map((b) => {
+      if (!b?.title) return '';
+      return `
+        <div class="comparable-title">
+          <span class="comparable-icon" aria-hidden="true">${bookIcon}</span>
+          <div>
+            <p class="comparable-title-name">${escapeHtml(b.title)}${b.author ? ` <span class="muted">- ${escapeHtml(b.author)}</span>` : ''}</p>
+            ${b.ageRange ? `<p class="muted small">Ages ${escapeHtml(b.ageRange)}</p>` : ''}
+            ${b.why ? `<p class="comparable-title-why">${escapeHtml(b.why)}</p>` : ''}
+            <button class="link-btn lesson-lookup-btn" data-title="${escapeHtml(b.title)}" data-author="${escapeHtml(b.author || '')}">Look up this book</button>
+          </div>
+        </div>`;
+    }).filter(Boolean).join('')}
+  `;
+  container.querySelectorAll('.lesson-lookup-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const q = `${btn.dataset.title} ${btn.dataset.author}`.trim();
+      document.getElementById('input-title-search').value = q;
+      lookupBook({ q });
+      document.getElementById('book-card')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+  show('lesson-results');
+}
+
 // ---------- lookup ----------
 async function lookupBook(payload) {
   const errorEl = document.getElementById('lookup-error');
