@@ -175,12 +175,14 @@ function isValidEmail(email) {
   return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// Sends via Resend if RESEND_API_KEY is configured; otherwise logs the email to the server
-// console so password reset is fully testable locally without a real email provider. The
-// email body (and any reset link/token in it) is NEVER returned from an API response -
-// only ever delivered by email or printed to a console only the server operator can see.
+// Sends via Resend in production. Local development can use the console fallback so the
+// password reset flow remains testable without an email provider. Reset links are never
+// returned from an API response.
 async function sendEmail({ to, subject, html }) {
   if (!process.env.RESEND_API_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('RESEND_API_KEY is required in production');
+    }
     const plainText = html
       .replace(/<a href="([^"]+)"[^>]*>/gi, '$1 (') // keep link URLs visible before stripping tags
       .replace(/<\/a>/gi, ')')
@@ -188,7 +190,10 @@ async function sendEmail({ to, subject, html }) {
       .replace(/\s+/g, ' ')
       .trim();
     console.log(`\n[dev email - no RESEND_API_KEY set]\nTo: ${to}\nSubject: ${subject}\n${plainText}\n`);
-    return;
+    return true;
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.RESEND_FROM_EMAIL) {
+    throw new Error('RESEND_FROM_EMAIL is required in production');
   }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -204,8 +209,10 @@ async function sendEmail({ to, subject, html }) {
     }),
   });
   if (!res.ok) {
-    console.error('Resend email send failed:', res.status, await res.text().catch(() => ''));
+    const details = await res.text().catch(() => '');
+    throw new Error(`Resend email send failed (${res.status}): ${details}`);
   }
+  return true;
 }
 
 function hashToken(token) {

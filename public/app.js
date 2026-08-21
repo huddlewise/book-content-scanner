@@ -84,8 +84,16 @@ if (new URLSearchParams(location.search).get('upgraded') === '1') {
 }
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
-  await fetch('/api/logout', { method: 'POST' });
-  window.location.href = '/login';
+  const btn = document.getElementById('btn-logout');
+  btn.disabled = true;
+  btn.textContent = 'Logging out...';
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch {
+    // Redirect even if the server is temporarily unreachable; the login page is the safe local state.
+  } finally {
+    window.location.href = '/login';
+  }
 });
 
 // ---------- account deletion ----------
