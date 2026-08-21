@@ -423,10 +423,36 @@ function renderBookCard(book) {
 }
 
 // ---------- analysis ----------
+// Rotating status lines during analysis - real research takes a while, so cycling
+// through what's actually happening keeps the wait from feeling stuck or broken.
+const ANALYSIS_LOADING_STAGES = [
+  'Checking reviews and content sources',
+  'Cross-referencing what other parents found',
+  'Looking for age guidance and content warnings',
+  'Weighing up themes and mental models',
+  'Putting together your summary',
+];
+let loadingStageTimer = null;
+
+function startLoadingStages() {
+  const statusEl = document.getElementById('loading-status');
+  let i = 0;
+  statusEl.textContent = ANALYSIS_LOADING_STAGES[0];
+  loadingStageTimer = setInterval(() => {
+    i = (i + 1) % ANALYSIS_LOADING_STAGES.length;
+    statusEl.textContent = ANALYSIS_LOADING_STAGES[i];
+  }, 4500);
+}
+
+function stopLoadingStages() {
+  clearInterval(loadingStageTimer);
+}
+
 document.getElementById('btn-analyze').addEventListener('click', async () => {
   if (!currentBook) return;
   hide('analysis-card');
   show('analysis-loading');
+  startLoadingStages();
 
   try {
     const res = await fetch('/api/analyze', {
@@ -459,6 +485,7 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
     document.getElementById('analysis-card').innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
     show('analysis-card');
   } finally {
+    stopLoadingStages();
     hide('analysis-loading');
   }
 });

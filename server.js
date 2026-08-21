@@ -909,7 +909,7 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
     isbn ? `ISBN: ${isbn}` : null,
   ].filter(Boolean).join('\n');
 
-  const prompt = `A parent is deciding whether the following children's or young-adult book is a fit for their family. Research this specific edition using web search - check sources like Common Sense Media, BookTrust, Kirkus Reviews, School Library Journal, Goodreads content-warning threads, or the publisher's own age guidance.
+  const prompt = `A parent is deciding whether the following children's or young-adult book is a fit for their family. Research this specific edition using web search - check sources like Common Sense Media, BookTrust, Kirkus Reviews, School Library Journal, Goodreads content-warning threads, or the publisher's own age guidance. Search efficiently: a couple of well-chosen queries covering the most reliable sources are better than many broad ones.
 
 ${bookDescriptor}
 
@@ -921,7 +921,7 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-5',
       max_tokens: 8000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
       messages: [{ role: 'user', content: prompt }],
     });
 
