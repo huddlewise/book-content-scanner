@@ -37,6 +37,29 @@ app.set('trust proxy', 1); // needed for correct req.ip behind Render/Fly/Railwa
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
+function subscriptionHasPaidAccess(status) {
+  return status === 'active' || status === 'trialing';
+}
+
+async function syncAccountFromSubscription(subscription) {
+  const accounts = await readAccounts();
+  const accountId = subscription.metadata?.accountId;
+  const account = accounts.find((candidate) => (
+    candidate.id === accountId
+    || candidate.stripeSubscriptionId === subscription.id
+    || candidate.stripeCustomerId === subscription.customer
+  ));
+  if (!account) {
+    console.warn(`Stripe subscription ${subscription.id} could not be matched to a KinRead account.`);
+    return;
+  }
+
+  account.plan = subscriptionHasPaidAccess(subscription.status) ? 'paid' : 'free';
+  account.stripeCustomerId = subscription.customer;
+  account.stripeSubscriptionId = subscription.id;
+  await writeAccounts(accounts);
+}
+
 // Stripe needs the raw (unparsed) request body to verify its signature, so this route is
 // registered before express.json() below, which would otherwise consume the body first.
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -59,20 +82,14 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
         const accounts = await readAccounts();
         const account = accounts.find((a) => a.id === accountId);
         if (account) {
-          account.plan = 'paid';
+          account.plan = ['paid', 'no_payment_required'].includes(session.payment_status) ? 'paid' : 'free';
           account.stripeCustomerId = session.customer;
           account.stripeSubscriptionId = session.subscription;
           await writeAccounts(accounts);
         }
       }
-    } else if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object;
-      const accounts = await readAccounts();
-      const account = accounts.find((a) => a.stripeSubscriptionId === subscription.id);
-      if (account) {
-        account.plan = 'free';
-        await writeAccounts(accounts);
-      }
+    } else if (['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted'].includes(event.type)) {
+      await syncAccountFromSubscription(event.data.object);
     }
     res.json({ received: true });
   } catch (err) {
@@ -522,6 +539,7 @@ app.post('/api/billing/create-checkout-session', async (req, res) => {
       customer: account.stripeCustomerId || undefined,
       customer_email: account.stripeCustomerId ? undefined : account.email,
       client_reference_id: account.id,
+      subscription_data: { metadata: { accountId: account.id } },
       success_url: `${origin}/?upgraded=1`,
       cancel_url: `${origin}/`,
     });

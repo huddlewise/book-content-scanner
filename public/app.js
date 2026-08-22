@@ -34,8 +34,10 @@ async function loadAccount() {
       document.getElementById('account-dropdown').classList.add('hidden');
       startBillingFlow(account.plan === 'paid' ? 'portal' : 'checkout');
     };
+    return account;
   } catch {
     // not fatal - the menu just stays hidden
+    return null;
   }
 }
 
@@ -75,11 +77,21 @@ document.getElementById('upgrade-modal').addEventListener('click', (e) => {
 // Coming back from a successful Stripe Checkout redirects here with ?upgraded=1
 if (new URLSearchParams(location.search).get('upgraded') === '1') {
   window.history.replaceState({}, '', location.pathname);
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
     const hint = document.createElement('p');
     hint.className = 'hint centered';
-    hint.textContent = "You're on the Family plan now. Thank you!";
+    hint.textContent = 'Confirming your KinRead Family plan...';
     document.querySelector('main')?.prepend(hint);
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const account = await loadAccount();
+      if (account?.plan === 'paid') {
+        hint.textContent = 'Your KinRead Family plan is active. Thank you!';
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    hint.textContent = 'Payment received. Your plan is still updating; refresh in a moment.';
   });
 }
 
