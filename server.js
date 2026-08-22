@@ -111,7 +111,19 @@ const forgotPasswordRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 5 });
 
 // Unauthenticated on purpose - for uptime monitors (UptimeRobot, Render/Fly health checks)
 // so they don't get redirected to the login page and reported as down.
-app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/health', async (_req, res) => {
+  const requiresPostgres = process.env.NODE_ENV === 'production';
+  if (!requiresPostgres) return res.json({ ok: true, storage: pool ? 'postgres' : 'local' });
+  if (!pool) return res.status(503).json({ ok: false, storage: 'unavailable' });
+
+  try {
+    await pool.query('SELECT 1');
+    return res.json({ ok: true, storage: 'postgres' });
+  } catch (err) {
+    console.error('Health check database query failed:', err.message);
+    return res.status(503).json({ ok: false, storage: 'unavailable' });
+  }
+});
 
 // ---------- account auth (email + password, one session per account) ----------
 
