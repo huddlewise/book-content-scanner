@@ -726,9 +726,10 @@ function renderAnalysis(result) {
 
 async function saveCurrentBook() {
   const notes = document.getElementById('notes-field')?.value || '';
+  const ageGuidance = currentAnalysis?.age_guidance || currentBook?.ageRange || '';
   const entry = {
     ...currentBook,
-    analysis: currentAnalysis,
+    analysis: { ...(currentAnalysis || {}), age_guidance: ageGuidance },
     parentNotes: notes,
   };
   const btn = document.getElementById('btn-save');
@@ -829,7 +830,8 @@ function renderLibrary(entries) {
       .map((key) => `<span class="mini-badge ${stampClass(key, cats[key].level)}">${CATEGORY_LABELS[key]}</span>`)
       .join('');
     const genre = entry.categories?.length ? genreLabel(entry.categories[0]) : '';
-    const ageChip = renderAgeGuidanceChip(entry.analysis?.age_guidance, { truncate: false });
+    const savedAgeGuidance = entry.analysis?.age_guidance || entry.age_guidance || entry.ageRange || '';
+    const ageChip = renderAgeGuidanceChip(savedAgeGuidance, { truncate: false });
 
     return `
       <div class="card library-item" data-index="${i}">
