@@ -639,14 +639,16 @@ function renderMentalModels(models) {
 }
 
 function ageGuidanceText(ageGuidance) {
-  if (!ageGuidance) return '';
-  return ageGuidance.length > 24 ? `${ageGuidance.slice(0, 21).trim()}…` : ageGuidance;
+  const guidance = String(ageGuidance ?? '').trim();
+  if (!guidance) return '';
+  return guidance.length > 24 ? `${guidance.slice(0, 21).trim()}…` : guidance;
 }
 
 function renderAgeGuidanceChip(ageGuidance, { truncate = true } = {}) {
-  if (!ageGuidance) return '';
-  const label = truncate ? ageGuidanceText(ageGuidance) : ageGuidance;
-  return `<span class="info-chip" title="${escapeHtml(ageGuidance)}">Suggested age: ${escapeHtml(label)}</span>`;
+  const guidance = String(ageGuidance ?? '').trim();
+  if (!guidance) return '';
+  const label = truncate ? ageGuidanceText(guidance) : guidance;
+  return `<span class="info-chip" title="${escapeHtml(guidance)}">Suggested age: ${escapeHtml(label)}</span>`;
 }
 
 function renderDiscussionPoints(points) {
