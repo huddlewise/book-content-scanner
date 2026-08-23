@@ -152,6 +152,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
 const SESSION_COOKIE = 'kinread_session';
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const FREE_TIER_MONTHLY_LIMIT = 5;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase() || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -166,6 +168,13 @@ function verifyPassword(password, stored) {
   const hashBuffer = Buffer.from(hash, 'hex');
   const candidateBuffer = Buffer.from(candidate, 'hex');
   return hashBuffer.length === candidateBuffer.length && timingSafeEqual(hashBuffer, candidateBuffer);
+}
+
+function matchesAdminCredentials(email, password) {
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || email !== ADMIN_EMAIL || typeof password !== 'string') return false;
+  const supplied = Buffer.from(password);
+  const configured = Buffer.from(ADMIN_PASSWORD);
+  return supplied.length === configured.length && timingSafeEqual(supplied, configured);
 }
 
 // Session token is `${accountId}.${expiresAt}.${signature}` - accountId is a UUID (no dots),
@@ -270,7 +279,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root { --primary: #4f46e5; --gradient-brand: linear-gradient(135deg, #4f46e5 0%, #7c5cf0 48%, #0d9488 100%); }
+  :root { --primary: #00a99d; --gradient-brand: linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%); }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
     background: #f3f4fb; font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif; padding: 1rem; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
   .card { background: #fff; border-radius: 20px; padding: 2rem; width: min(92vw, 24rem);
@@ -410,7 +419,7 @@ app.post('/api/signup', signupRateLimit, async (req, res) => {
     id: randomUUID(),
     email: normalizedEmail,
     passwordHash: hashPassword(password),
-    plan: 'free',
+    plan: matchesAdminCredentials(normalizedEmail, password) ? 'paid' : 'free',
     analysesUsed: 0,
     periodStart: currentPeriodStart(),
     createdAt: new Date().toISOString(),
@@ -428,9 +437,27 @@ app.post('/api/login', loginRateLimit, async (req, res) => {
   }
   const normalizedEmail = email.trim().toLowerCase();
   const accounts = await readAccounts();
-  const account = accounts.find((a) => a.email === normalizedEmail);
-  if (!account || !verifyPassword(password, account.passwordHash)) {
+  const isAdminLogin = matchesAdminCredentials(normalizedEmail, password);
+  let account = accounts.find((a) => a.email === normalizedEmail);
+  if (!account && isAdminLogin) {
+    account = {
+      id: randomUUID(),
+      email: normalizedEmail,
+      passwordHash: hashPassword(password),
+      plan: 'paid',
+      analysesUsed: 0,
+      periodStart: currentPeriodStart(),
+      createdAt: new Date().toISOString(),
+    };
+    accounts.push(account);
+    await writeAccounts(accounts);
+  }
+  if (!account || (!isAdminLogin && !verifyPassword(password, account.passwordHash))) {
     return res.status(401).json({ error: 'Incorrect email or password.' });
+  }
+  if (isAdminLogin && account.plan !== 'paid') {
+    account.plan = 'paid';
+    await writeAccounts(accounts);
   }
   startSession(res, account.id);
   res.json({ ok: true, email: account.email });
@@ -837,7 +864,8 @@ const ANALYSIS_SCHEMA_PROMPT = `Respond with ONLY a single valid JSON object - n
     {
       "topic": "short plain-language issue worth discussing with a child",
       "why_it_matters": "one brief, neutral sentence grounded in the story about why this issue may come up for a child",
-      "talking_tip": "one brief, developmentally informed, non-diagnostic suggestion for how a parent could discuss it"
+      "principle": "short name of the child-development principle behind the suggestion, e.g. 'Validate before problem-solving' or 'Belonging and agency'",
+      "talking_tip": "one brief, developmentally informed, non-diagnostic suggestion for how a parent could discuss it, written in plain, restrained UK English"
     }
   ],
   "comparable_titles": [
@@ -960,7 +988,7 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
 
 ${bookDescriptor}
 
-Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If the story raises meaningful issues a parent may want to talk through with a child, include up to three discussion_points using developmentally informed child-mental-health principles (for example naming feelings, validating reactions, perspective-taking, coping, or safety) while staying neutral, practical, and non-diagnostic; return an empty array when no clear discussion angle stands out. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
+Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If the story raises meaningful issues a parent may want to talk through with a child, include up to three discussion_points. Base each talking_tip on an appropriate, practical child psychiatry or psychology principle, such as emotion coaching (notice and name feelings), validation before problem-solving, developmentally appropriate perspective-taking, collaborative coping and safety planning, or repair after conflict. Where the story involves belonging, competition, mistaken goals, encouragement, or independence, you may also use an Adlerian lens: belonging and significance, agency within limits, encouragement over praise, and curiosity about the child's private logic. Put the chosen principle in the principle field. Use these frameworks as flexible conversation lenses, not diagnoses or treatment; do not label a child, predict behaviour, give clinical advice, or imply that an Adlerian interpretation is definitive. Write parent-facing guidance in plain, intelligent, restrained UK English. Keep sentences short and clean. State the substantive point directly. Avoid therapy-speak, motivational language, generic social-media phrasing, rhetorical flourishes, and unnecessary hedging. Distinguish what the story shows from what a parent might reasonably discuss. Keep suggestions neutral, practical, culturally respectful, and non-diagnostic; return an empty array when no clear discussion angle stands out. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
 
 ${ANALYSIS_SCHEMA_PROMPT}`;
 

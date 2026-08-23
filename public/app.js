@@ -605,6 +605,13 @@ function stampClass(key, level) {
   return { none: 'stamp-clear', mild: 'stamp-mild', moderate: 'stamp-moderate', strong: 'stamp-strong' }[level] || 'stamp-info';
 }
 
+function displayCategoryLevel(key, level) {
+  if (key === 'lgbtq_content' || key === 'other_themes') {
+    return { none: 'None noted', minor: 'Present', central: 'Central theme' }[level] || level || 'None noted';
+  }
+  return level || 'none';
+}
+
 function renderContentAlert(categories) {
   const priorityKeys = ['sexual_content', 'language', 'violence', 'substance_use', 'self_harm_suicide'];
   const flagged = priorityKeys
@@ -652,18 +659,17 @@ function renderAgeGuidanceChip(ageGuidance, { truncate = true } = {}) {
 }
 
 function renderDiscussionPoints(points) {
-  if (!Array.isArray(points) || points.length === 0) return '';
-  const items = points.slice(0, 3).map((point) => {
+  const items = (Array.isArray(points) ? points : []).slice(0, 3).map((point) => {
     if (!point?.topic) return '';
     return `
       <article class="discussion-note">
         <h3>${escapeHtml(point.topic)}</h3>
         ${point.why_it_matters ? `<p>${escapeHtml(point.why_it_matters)}</p>` : ''}
+        ${point.principle ? `<p class="discussion-note-principle">Lens: ${escapeHtml(point.principle)}</p>` : ''}
         ${point.talking_tip ? `<p class="discussion-note-tip">How to talk about it: ${escapeHtml(point.talking_tip)}</p>` : ''}
       </article>`;
   }).filter(Boolean).join('');
-  if (!items) return '';
-  return `<section class="discussion-notes"><p class="card-label">Key issues you may want to discuss</p>${items}</section>`;
+  return `<section class="discussion-notes"><p class="card-label">Conversation starters for parents</p>${items || '<p class="discussion-notes-empty">No specific conversation starter was identified for this book.</p>'}</section>`;
 }
 
 function renderComparableTitles(titles) {
@@ -683,6 +689,24 @@ function renderComparableTitles(titles) {
   return `<section class="comparable-titles"><p class="card-label">If you know one of these, you'll know what to expect</p>${items}</section>`;
 }
 
+function renderFlaggedCategoryDetails(categories) {
+  const items = Object.keys(CATEGORY_LABELS)
+    .filter((key) => categories[key]?.level && categories[key].level !== 'none')
+    .map((key) => {
+      const category = categories[key];
+      return `
+        <article class="flagged-category-detail">
+          <div>
+            <strong>${escapeHtml(CATEGORY_LABELS[key])}</strong>
+            <span>${escapeHtml(displayCategoryLevel(key, category.level))}</span>
+          </div>
+          ${category.notes ? `<p>${escapeHtml(category.notes)}</p>` : '<p>No further detail was recorded.</p>'}
+        </article>`;
+    }).join('');
+  if (!items) return '';
+  return `<section class="flagged-category-details"><p class="card-label">Why this was flagged</p>${items}</section>`;
+}
+
 function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
@@ -693,7 +717,7 @@ function renderAnalysis(result) {
     return `
       <div class="stamp ${cls}">
         <span class="stamp-category">${CATEGORY_LABELS[key]}</span>
-        <span class="stamp-level">${escapeHtml(cat.level || 'none')}</span>
+        <span class="stamp-level">${escapeHtml(displayCategoryLevel(key, cat.level))}</span>
         ${cat.notes ? `<span class="stamp-notes">${escapeHtml(cat.notes)}</span>` : ''}
       </div>`;
   }).join('');
@@ -844,6 +868,7 @@ function renderLibrary(entries) {
           <div class="library-item-badges">${badges || '<span class="mini-badge stamp-clear">No flags</span>'}</div>
           <div class="library-item-detail hidden">
             ${entry.analysis?.summary ? `<p class="small">${escapeHtml(entry.analysis.summary)}</p>` : ''}
+            ${renderFlaggedCategoryDetails(entry.analysis?.categories || {})}
             ${renderKidVerdicts(entry.analysis?.categories || {})}
             ${renderDiscussionPoints(entry.analysis?.discussion_points)}
             ${renderMentalModels(entry.analysis?.mental_models)}

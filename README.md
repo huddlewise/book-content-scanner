@@ -21,7 +21,7 @@ Nothing is presented as gospel. Every analysis shows its sources and a confidenc
 4. First launch only, it'll ask you to paste in an Anthropic API key. Get a free one at [console.anthropic.com](https://console.anthropic.com) (Settings → API Keys), or use one the person who shared this with you provided.
 5. Your browser opens automatically. Create a free account (just an email + password): this is what keeps your library and kids' profiles private to you, even if others use the same shared link. Your laptop's own webcam works immediately for barcode scanning, no extra setup needed.
 
-Every account gets 5 free content analyses a month; a paid plan for unlimited analyses is coming soon.
+Every account gets 5 free content analyses a month. For the owner account, set `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` in `.env`; signing in with that exact email and password enables unlimited analyses, including lesson searches. The owner account is created automatically on its first admin login if it does not already exist. Keep these values private and restart the server after changing them.
 
 Want to try it with your phone's camera instead of your laptop's? That needs one extra step, see "Using it on your phone" below. It's optional.
 
@@ -43,6 +43,15 @@ npm start
 ```
 
 Open **http://localhost:3000** in your browser.
+
+To configure owner access manually, add these lines to `.env`:
+
+```env
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=use-a-long-random-password
+```
+
+The owner account is created automatically on its first login. The admin password is checked only on the server and is never sent back to the browser. Existing passwords cannot be retrieved because they are stored as one-way hashes; use the configured admin credentials or the “Forgot password?” flow instead.
 
 ## Using it on your phone (for the camera)
 
