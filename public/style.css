@@ -548,28 +548,35 @@ input:focus, button:focus-visible, textarea:focus {
   margin: 0 0 1.1rem;
 }
 
-.mental-models {
+.mental-models,
+.discussion-notes {
   border-top: 1px solid var(--line);
   margin: 1.1rem 0;
   padding-top: 1.1rem;
 }
 
-.mental-models .card-label { margin-bottom: 0.65rem; }
+.mental-models .card-label,
+.discussion-notes .card-label { margin-bottom: 0.65rem; }
 
-.mental-model {
+.mental-model,
+.discussion-note {
   border-left: 3px solid var(--teal);
   margin-top: 0.65rem;
   padding: 0.1rem 0 0.1rem 0.75rem;
 }
 
-.mental-model h3 {
+.discussion-note { border-left-color: var(--primary); }
+
+.mental-model h3,
+.discussion-note h3 {
   font-family: var(--font-display);
   font-size: 0.92rem;
   font-weight: 600;
   margin: 0;
 }
 
-.mental-model p {
+.mental-model p,
+.discussion-note p {
   font-size: 0.82rem;
   line-height: 1.45;
   margin: 0.25rem 0 0;
@@ -577,6 +584,7 @@ input:focus, button:focus-visible, textarea:focus {
 
 .mental-model-evidence { color: var(--ink-muted); }
 .mental-model-caveat { color: var(--stamp-orange); }
+.discussion-note-tip { color: var(--ink-muted); }
 
 /* ---------- info chips (confidence / suggested age) ---------- */
 .info-chip-row {
@@ -596,6 +604,13 @@ input:focus, button:focus-visible, textarea:focus {
 .info-chip.confidence-low { background: #fdf3de; color: var(--stamp-amber); }
 .info-chip.confidence-medium { background: var(--teal-soft); color: var(--teal-dark); }
 .info-chip.confidence-high { background: var(--stamp-green-soft); color: var(--stamp-green); }
+
+.library-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.45rem 0 0.2rem;
+}
 
 /* ---------- comparable titles ---------- */
 .comparable-titles {

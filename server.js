@@ -833,6 +833,13 @@ const ANALYSIS_SCHEMA_PROMPT = `Respond with ONLY a single valid JSON object - n
     }
   ],
   "age_guidance": "brief age or grade range only, e.g. '8-12' or 'Grades 3-5' - a few words at most, never a full sentence; empty string if unknown",
+  "discussion_points": [
+    {
+      "topic": "short plain-language issue worth discussing with a child",
+      "why_it_matters": "one brief, neutral sentence grounded in the story about why this issue may come up for a child",
+      "talking_tip": "one brief, developmentally informed, non-diagnostic suggestion for how a parent could discuss it"
+    }
+  ],
   "comparable_titles": [
     {
       "title": "a well-known book most parents would recognise",
@@ -953,7 +960,7 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
 
 ${bookDescriptor}
 
-Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
+Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If the story raises meaningful issues a parent may want to talk through with a child, include up to three discussion_points using developmentally informed child-mental-health principles (for example naming feelings, validating reactions, perspective-taking, coping, or safety) while staying neutral, practical, and non-diagnostic; return an empty array when no clear discussion angle stands out. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
 
 ${ANALYSIS_SCHEMA_PROMPT}`;
 

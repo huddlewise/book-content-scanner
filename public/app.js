@@ -638,6 +638,32 @@ function renderMentalModels(models) {
   return `<section class="mental-models"><p class="card-label">Ways of thinking this story explores</p>${items}</section>`;
 }
 
+function ageGuidanceText(ageGuidance) {
+  if (!ageGuidance) return '';
+  return ageGuidance.length > 24 ? `${ageGuidance.slice(0, 21).trim()}…` : ageGuidance;
+}
+
+function renderAgeGuidanceChip(ageGuidance, { truncate = true } = {}) {
+  if (!ageGuidance) return '';
+  const label = truncate ? ageGuidanceText(ageGuidance) : ageGuidance;
+  return `<span class="info-chip" title="${escapeHtml(ageGuidance)}">Suggested age: ${escapeHtml(label)}</span>`;
+}
+
+function renderDiscussionPoints(points) {
+  if (!Array.isArray(points) || points.length === 0) return '';
+  const items = points.slice(0, 3).map((point) => {
+    if (!point?.topic) return '';
+    return `
+      <article class="discussion-note">
+        <h3>${escapeHtml(point.topic)}</h3>
+        ${point.why_it_matters ? `<p>${escapeHtml(point.why_it_matters)}</p>` : ''}
+        ${point.talking_tip ? `<p class="discussion-note-tip">How to talk about it: ${escapeHtml(point.talking_tip)}</p>` : ''}
+      </article>`;
+  }).filter(Boolean).join('');
+  if (!items) return '';
+  return `<section class="discussion-notes"><p class="card-label">Key issues you may want to discuss</p>${items}</section>`;
+}
+
 function renderComparableTitles(titles) {
   if (!Array.isArray(titles) || titles.length === 0) return '';
   const items = titles.slice(0, 3).map((t) => {
@@ -672,15 +698,9 @@ function renderAnalysis(result) {
 
   const sources = (result.sources || []).map((s) => `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || s.url)}</a></li>`).join('');
 
-  // Age guidance is meant to be a short range (e.g. "8-12") - if the model ever returns a
-  // full sentence, truncate rather than let a paragraph-length pill break the chip layout.
-  const ageGuidance = result.age_guidance && result.age_guidance.length > 24
-    ? `${result.age_guidance.slice(0, 21).trim()}…`
-    : result.age_guidance;
-
   const chips = [
     `<span class="info-chip confidence-${escapeHtml(result.confidence || 'unknown')}">Confidence: ${escapeHtml(result.confidence || 'unknown')}</span>`,
-    ageGuidance ? `<span class="info-chip" title="${escapeHtml(result.age_guidance)}">Suggested age: ${escapeHtml(ageGuidance)}</span>` : '',
+    renderAgeGuidanceChip(result.age_guidance),
   ].filter(Boolean).join('');
 
   card.innerHTML = `
@@ -688,6 +708,7 @@ function renderAnalysis(result) {
     <div class="info-chip-row">${chips}</div>
     ${renderKidVerdicts(cats)}
     ${renderContentAlert(cats)}
+    ${renderDiscussionPoints(result.discussion_points)}
     <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     <div class="stamp-grid">${stamps}</div>
     ${renderMentalModels(result.mental_models)}
@@ -808,6 +829,7 @@ function renderLibrary(entries) {
       .map((key) => `<span class="mini-badge ${stampClass(key, cats[key].level)}">${CATEGORY_LABELS[key]}</span>`)
       .join('');
     const genre = entry.categories?.length ? genreLabel(entry.categories[0]) : '';
+    const ageChip = renderAgeGuidanceChip(entry.analysis?.age_guidance, { truncate: false });
 
     return `
       <div class="card library-item" data-index="${i}">
@@ -815,11 +837,13 @@ function renderLibrary(entries) {
         <div style="flex:1">
           <p class="library-item-title">${escapeHtml(entry.title || 'Untitled')}</p>
           <p class="muted small">${escapeHtml((entry.authors || []).join(', '))}${genre ? ` · ${escapeHtml(genre)}` : ''}</p>
+          ${ageChip ? `<div class="library-meta-chips">${ageChip}</div>` : ''}
           ${renderKidVerdictDots(entry.analysis?.categories || {})}
           <div class="library-item-badges">${badges || '<span class="mini-badge stamp-clear">No flags</span>'}</div>
           <div class="library-item-detail hidden">
             ${entry.analysis?.summary ? `<p class="small">${escapeHtml(entry.analysis.summary)}</p>` : ''}
             ${renderKidVerdicts(entry.analysis?.categories || {})}
+            ${renderDiscussionPoints(entry.analysis?.discussion_points)}
             ${renderMentalModels(entry.analysis?.mental_models)}
             ${renderComparableTitles(entry.analysis?.comparable_titles)}
             ${entry.parentNotes ? `<p class="small"><em>${escapeHtml(entry.parentNotes)}</em></p>` : ''}
