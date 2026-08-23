@@ -9,10 +9,11 @@ This guide covers different ways to deploy KinRead so you and others can access 
 | `ANTHROPIC_API_KEY` | Yes | Powers content analysis and cover-photo reading |
 | `SESSION_SECRET` | Yes | Signs customer login sessions - without it, everyone gets logged out on every restart/redeploy. `npm run setup` generates one automatically for local use; set your own random 64-character value for any cloud deployment |
 | `GOOGLE_BOOKS_API_KEY` | Recommended | Avoids Google Books rate-limiting (~100 lookups/day without it) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Optional | Owner credentials with unlimited analyses and lesson searches; the owner account is created on first login if needed |
 | `DATABASE_URL` | Recommended for real customers | A Postgres connection string. Without it, accounts and libraries are stored as JSON files on disk - fine for local use, but most cloud hosts wipe local disk on every redeploy, which would delete every customer's account and library |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` | Optional | Only needed once you're ready to accept real subscription payments |
 
-KinRead now requires every visitor to sign up for a free account (email + password) - there's no more single shared family password. Each account gets its own private library, kid profiles, and thresholds, plus 5 free content analyses a month.
+KinRead now requires every visitor to sign up for a free account (email + password) - there's no more single shared family password. Each account gets its own private library, kid profiles, and thresholds, plus 5 free content analyses a month. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the owner account before deployment; passwords cannot be recovered from the stored hashes.
 
 ## Local Development
 
