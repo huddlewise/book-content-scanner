@@ -170,6 +170,7 @@ This makes the URL friendlier: `https://kinread.family` instead of `https://kinr
 
 ## Next Steps
 
+- Run the [validation checklist](VALIDATION.md) against the deployed URL before sharing it
 - Share the URL with family/friends
 - Set spending limits on your API key to control costs
 - Monitor usage at https://console.anthropic.com/account/usage

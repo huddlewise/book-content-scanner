@@ -25,6 +25,8 @@ Every account gets 5 free content analyses a month. For the owner account, set `
 
 Want to try it with your phone's camera instead of your laptop's? That needs one extra step, see "Using it on your phone" below. It's optional.
 
+Before sharing a build, run the [validation checklist](VALIDATION.md) to test authentication, book analysis, account isolation, responsive layouts, and optional billing/email integrations.
+
 **Note for whoever's distributing this**: sharing your own API key with testers is easiest, but set a spending limit on that key first (console.anthropic.com → Settings → API Keys → spending limits) so it can't run up a surprise bill if someone uses it more than expected.
 
 ## Manual setup (for developers)
