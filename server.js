@@ -1034,7 +1034,7 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
   }
 });
 
-// ---------- discover books by lesson/mental model (search by idea, not title) ----------
+// ---------- discover books by theme, subject, or idea (search by concept, not title) ----------
 
 function lessonSearchCacheKey(query) {
   return query.toLowerCase().trim().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -1046,7 +1046,7 @@ app.post('/api/discover-by-lesson', analyzeRateLimit, async (req, res) => {
   }
   const { query } = req.body;
   if (!query || query.trim().length < 3) {
-    return res.status(400).json({ error: 'Describe the idea or lesson you\'re looking for.' });
+    return res.status(400).json({ error: 'Describe the theme, subject, or idea you\'re looking for.' });
   }
 
   const cacheKey = lessonSearchCacheKey(query);
@@ -1056,7 +1056,7 @@ app.post('/api/discover-by-lesson', analyzeRateLimit, async (req, res) => {
   const quota = await checkAndConsumeAnalysisQuota(req.accountId);
   if (!quota.ok) return res.status(402).json({ error: quota.error });
 
-  const prompt = `A parent wants to find children's or young-adult storybooks (real, existing published books - never invent a title) that genuinely illustrate the following idea or lesson through their plot or characters:
+  const prompt = `A parent wants to find children's or young-adult storybooks (real, existing published books - never invent a title) matching the following theme, subject, genre, mental-model lesson, or idea. This may be a plot subject such as murder, mystery, or detectives; a genre such as detective fiction; or a broader lesson such as handling big feelings or seeing two sides of a problem. Interpret the request naturally and recommend books that genuinely fit it through their plot, characters, or reading experience:
 
 "${query.trim()}"
 
@@ -1125,6 +1125,9 @@ app.put('/api/kids/:id', async (req, res) => {
   const kid = kids.find((k) => k.id === req.params.id);
   if (!kid) return res.status(404).json({ error: 'Kid profile not found.' });
   if (name) kid.name = name;
+  if (age !== undefined && (!Number.isInteger(age) || age < 0 || age > 18)) {
+    return res.status(400).json({ error: 'Age must be a whole number from 0 to 18.' });
+  }
   if (typeof age === 'number') kid.age = age;
   await writeKids(req.accountId, kids);
   res.json(kid);

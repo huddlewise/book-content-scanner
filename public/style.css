@@ -911,6 +911,24 @@ input:focus, button:focus-visible, textarea:focus {
 }
 
 /* ---------- family tab ---------- */
+.kid-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.btn-edit-age {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.btn-edit-age:hover {
+  opacity: 0.7;
+}
 .kid-row {
   display: flex;
   justify-content: space-between;

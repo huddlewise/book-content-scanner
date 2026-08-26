@@ -407,11 +407,11 @@ document.getElementById('form-title').addEventListener('submit', (e) => {
   if (q) lookupBook({ q });
 });
 
-// ---------- search by lesson/idea (mental model discovery) ----------
+// ---------- search by theme, subject, or idea (book discovery) ----------
 document.getElementById('btn-toggle-lesson').addEventListener('click', (e) => {
   document.getElementById('form-lesson').classList.toggle('hidden');
   const nowVisible = !document.getElementById('form-lesson').classList.contains('hidden');
-  e.target.textContent = nowVisible ? 'Hide idea search' : 'Looking for a lesson, not a book? Search by idea instead';
+  e.target.textContent = nowVisible ? 'Hide theme or lesson search' : 'Search by theme or mental-model lesson';
 });
 
 document.getElementById('form-lesson').addEventListener('submit', async (e) => {
@@ -658,7 +658,7 @@ function renderAgeGuidanceChip(ageGuidance, { truncate = true } = {}) {
   return `<span class="info-chip" title="${escapeHtml(guidance)}">Suggested age: ${escapeHtml(label)}</span>`;
 }
 
-function renderDiscussionPoints(points) {
+function renderDiscussionPoints(points, label = 'Conversation starters for parents') {
   const items = (Array.isArray(points) ? points : []).slice(0, 3).map((point) => {
     if (!point?.topic) return '';
     return `
@@ -669,7 +669,7 @@ function renderDiscussionPoints(points) {
         ${point.talking_tip ? `<p class="discussion-note-tip">How to talk about it: ${escapeHtml(point.talking_tip)}</p>` : ''}
       </article>`;
   }).filter(Boolean).join('');
-  return `<section class="discussion-notes"><p class="card-label">Conversation starters for parents</p>${items || '<p class="discussion-notes-empty">No specific conversation starter was identified for this book.</p>'}</section>`;
+  return `<section class="discussion-notes"><p class="card-label">${label}</p>${items || '<p class="discussion-notes-empty">No specific conversation starter was identified for this book.</p>'}</section>`;
 }
 
 function renderComparableTitles(titles) {
@@ -872,7 +872,7 @@ function renderLibrary(entries) {
             ${entry.analysis?.summary ? `<p class="small">${escapeHtml(entry.analysis.summary)}</p>` : ''}
             ${renderFlaggedCategoryDetails(entry.analysis?.categories || {})}
             ${renderKidVerdicts(entry.analysis?.categories || {})}
-            ${renderDiscussionPoints(entry.analysis?.discussion_points)}
+            ${renderDiscussionPoints(entry.analysis?.discussion_points || entry.discussion_points, 'How to talk to kids')}
             ${renderMentalModels(entry.analysis?.mental_models)}
             ${renderComparableTitles(entry.analysis?.comparable_titles)}
             ${entry.parentNotes ? `<p class="small"><em>${escapeHtml(entry.parentNotes)}</em></p>` : ''}
@@ -927,8 +927,35 @@ function renderKidsList() {
   list.innerHTML = kidsCache.map((kid) => `
     <div class="kid-row">
       <span>${escapeHtml(kid.name)} · age ${kid.age}</span>
-      <button class="btn-delete" data-id="${kid.id}">Remove</button>
+      <div class="kid-actions">
+        <button class="btn-edit-age" data-id="${kid.id}" data-age="${kid.age}">Edit age</button>
+        <button class="btn-delete" data-id="${kid.id}">Remove</button>
+      </div>
     </div>`).join('');
+
+  list.querySelectorAll('.btn-edit-age').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const value = window.prompt('Enter an age from 0 to 18.', btn.dataset.age);
+      if (value === null) return;
+      const trimmedValue = value.trim();
+      const age = Number(trimmedValue);
+      if (!trimmedValue || !Number.isInteger(age) || age < 0 || age > 18) {
+        window.alert('Please enter a whole number from 0 to 18.');
+        return;
+      }
+      const response = await fetch(`/api/kids/${btn.dataset.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ age }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        window.alert(data.error || 'Could not update this age. Please try again.');
+        return;
+      }
+      loadFamily();
+    });
+  });
 
   list.querySelectorAll('.btn-delete').forEach((btn) => {
     btn.addEventListener('click', async () => {
