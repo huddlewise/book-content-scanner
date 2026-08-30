@@ -38,13 +38,21 @@ npm install
 npm run setup
 ```
 
-`npm run setup` walks you through adding your Anthropic API key (get one at [console.anthropic.com](https://console.anthropic.com)) and writes it to `.env`. This is a paid API: each "Analyse" click and each "Photograph cover" capture uses Claude, costing a small amount (the cover read is a quick vision call with no web search, so it's cheaper than a full analysis).
+`npm run setup` walks you through adding your Anthropic API key and, optionally, your Stripe billing credentials. It writes the values to `.env` so the app can run locally and enable paid checkout when configured. This is a paid API: each "Analyse" click and each "Photograph cover" capture uses Claude, costing a small amount (the cover read is a quick vision call with no web search, so it's cheaper than a full analysis).
 
 ```bash
 npm start
 ```
 
 Open **http://localhost:3000** in your browser.
+
+For Stripe billing, add these lines to `.env` if you want to accept subscriptions:
+
+```env
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PRICE_ID=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
 
 To configure owner access manually, add these lines to `.env`:
 

@@ -233,24 +233,31 @@ async function sendEmail({ to, subject, html }) {
   if (process.env.NODE_ENV === 'production' && !process.env.RESEND_FROM_EMAIL) {
     throw new Error('RESEND_FROM_EMAIL is required in production');
   }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL || 'KinRead <onboarding@resend.dev>',
-      to,
-      subject,
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const details = await res.text().catch(() => '');
-    throw new Error(`Resend email send failed (${res.status}): ${details}`);
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM_EMAIL || 'KinRead <onboarding@resend.dev>',
+        to,
+        subject,
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const details = await res.text().catch(() => '');
+      throw new Error(`Resend email send failed (${res.status}): ${details}`);
+    }
+    return true;
+  } catch (err) {
+    console.error('Resend email send failed:', err.message || err);
+    return false;
   }
-  return true;
 }
 
 function hashToken(token) {
@@ -484,17 +491,24 @@ app.post('/api/forgot-password', forgotPasswordRateLimit, async (req, res) => {
     const token = randomBytes(32).toString('hex');
     account.resetTokenHash = hashToken(token);
     account.resetTokenExpiresAt = Date.now() + RESET_TOKEN_TTL_MS;
-    await writeAccounts(accounts);
 
     const origin = `${req.protocol}://${req.get('host')}`;
     const resetUrl = `${origin}/reset-password.html?token=${token}`;
-    await sendEmail({
+    const sent = await sendEmail({
       to: account.email,
       subject: 'Reset your KinRead password',
       html: `<p>Someone requested a password reset for your KinRead account.</p>
         <p><a href="${resetUrl}">Click here to choose a new password</a> (valid for 1 hour).</p>
         <p>If this wasn't you, you can safely ignore this email.</p>`,
-    }).catch((err) => console.error('Could not send password reset email:', err));
+    });
+
+    if (!sent) {
+      delete account.resetTokenHash;
+      delete account.resetTokenExpiresAt;
+      console.error('Password reset token was cleared after email delivery failure.');
+    }
+
+    await writeAccounts(accounts);
   }
   res.json(genericResponse);
 });

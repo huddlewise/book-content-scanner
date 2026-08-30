@@ -16,6 +16,10 @@ async function fileExists(p) {
   }
 }
 
+function isTruthy(value) {
+  return ['y', 'yes', '1', 'true'].includes(String(value).trim().toLowerCase());
+}
+
 async function main() {
   if (await fileExists(ENV_PATH)) {
     console.log('Already set up (.env exists) - skipping.');
@@ -31,11 +35,44 @@ async function main() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
 
-  let key = '';
-  while (!key.startsWith('sk-ant-')) {
-    key = (await ask('Paste your Anthropic API key: ')).trim();
-    if (!key.startsWith('sk-ant-')) {
+  let anthropicKey = '';
+  while (!anthropicKey.startsWith('sk-ant-')) {
+    anthropicKey = (await ask('Paste your Anthropic API key: ')).trim();
+    if (!anthropicKey.startsWith('sk-ant-')) {
       console.log('That doesn\'t look like an Anthropic key (should start with "sk-ant-"). Try again.\n');
+    }
+  }
+
+  let stripeSetup = '';
+  while (!['y', 'n'].includes(stripeSetup.trim().toLowerCase())) {
+    stripeSetup = (await ask('Set up Stripe billing now? (y/n): ')).trim();
+  }
+
+  let stripeSecretKey = '';
+  let stripePriceId = '';
+  let stripeWebhookSecret = '';
+
+  if (isTruthy(stripeSetup)) {
+    console.log('\nStripe setup (optional but required for paid checkout):');
+    while (!stripeSecretKey.startsWith('sk_')) {
+      stripeSecretKey = (await ask('Stripe secret key (starts with sk_): ')).trim();
+      if (!stripeSecretKey.startsWith('sk_')) {
+        console.log('That doesn\'t look like a Stripe secret key. Try again.\n');
+      }
+    }
+
+    while (!stripePriceId.startsWith('price_')) {
+      stripePriceId = (await ask('Stripe price ID (starts with price_): ')).trim();
+      if (!stripePriceId.startsWith('price_')) {
+        console.log('That doesn\'t look like a Stripe price ID. Try again.\n');
+      }
+    }
+
+    while (!stripeWebhookSecret.startsWith('whsec_')) {
+      stripeWebhookSecret = (await ask('Stripe webhook secret (starts with whsec_): ')).trim();
+      if (!stripeWebhookSecret.startsWith('whsec_')) {
+        console.log('That doesn\'t look like a Stripe webhook secret. Try again.\n');
+      }
     }
   }
   rl.close();
@@ -44,8 +81,29 @@ async function main() {
   // across server restarts (without one, sessions reset on every restart/deploy).
   const sessionSecret = randomBytes(32).toString('hex');
 
-  await writeFile(ENV_PATH, `ANTHROPIC_API_KEY=${key}\nSESSION_SECRET=${sessionSecret}\nPORT=3000\n`, 'utf-8');
-  console.log('\nSaved! Starting the app now - you\'ll be asked to create a free account on first visit.\n');
+  const envLines = [
+    `ANTHROPIC_API_KEY=${anthropicKey}`,
+    `SESSION_SECRET=${sessionSecret}`,
+    'PORT=3000',
+  ];
+
+  if (stripeSecretKey) {
+    envLines.push(`STRIPE_SECRET_KEY=${stripeSecretKey}`);
+  }
+  if (stripePriceId) {
+    envLines.push(`STRIPE_PRICE_ID=${stripePriceId}`);
+  }
+  if (stripeWebhookSecret) {
+    envLines.push(`STRIPE_WEBHOOK_SECRET=${stripeWebhookSecret}`);
+  }
+
+  await writeFile(ENV_PATH, `${envLines.join('\n')}\n`, 'utf-8');
+
+  if (stripeSecretKey && stripePriceId && stripeWebhookSecret) {
+    console.log('\nSaved! Stripe billing is enabled for this app.\n');
+  } else {
+    console.log('\nSaved! Start the app and add Stripe values later if you want paid checkout enabled.\n');
+  }
 }
 
 main();
