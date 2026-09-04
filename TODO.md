@@ -2,66 +2,79 @@
 
 Last updated: 2026-09-04
 
-## 0. Right now: uncommitted work
+## Done this session
 
-Today's changes are finished and verified locally but **not committed**:
+- Affiliate "Where to get it" links (Amazon + Bookshop.org, referral tags optional)
+- Free-tier usage meter with quota reset date
+- Fixed a password-reset host-header poisoning vulnerability (`APP_BASE_URL`)
+- Branded HTML + plain-text password reset email
+- **Resend fully working**, local and production, from a verified sending domain
+- Separate Resend API keys per environment, both tested
+- Root SPF + Google Workspace DKIM records published for `huddlewisdom.com`
 
-- Affiliate "Where to get it" links (`server.js`, `public/app.js`, `public/style.css`, `public/terms.html`)
-- Usage meter + quota reset date (`server.js`, `public/app.js`, `public/index.html`, `public/style.css`)
-- Password-reset link hardening + branded reset email (`server.js`)
-- Docs: `.env.example`, `DEPLOYMENT.md`
-
-- [ ] Review the diff, then commit and push (Render auto-deploys from `main`)
-- [ ] Before `git add`: confirm `.gitignore` still covers everything in `data/` (recurring past mistake)
+Committed and deployed as `19d9990`. Changes to this file since then are uncommitted.
 
 ---
 
-## 1. Blocked on you (secrets - add these yourself, never paste into chat)
+## 1. Finish first (small, already in motion)
 
-### Resend email delivery
-- [ ] Sign up at resend.com, create an API key
-- [ ] Add to `.env`: `RESEND_API_KEY=re_...` and `RESEND_FROM_EMAIL=KinRead <onboarding@resend.dev>`
-- [ ] Add both to Render's env vars
-- [ ] Then: real inbox delivery test of the password reset flow
-- [ ] Before real customers: verify a sending domain (`onboarding@resend.dev` only delivers to your own Resend signup address)
+- [ ] **Google Admin → Apps → Google Workspace → Gmail → Authenticate email → Start
+      authentication.** The DKIM record is published and verified, but Gmail won't sign anything
+      until this button is clicked. Then send a test to a Gmail address and check **Show original**
+      for `SPF: PASS` and `DKIM: PASS` with domain `huddlewisdom.com`.
 
-### Live Stripe billing
-- [ ] Create a live-mode webhook endpoint in the Stripe Dashboard pointing at
+---
+
+## 2. Live Stripe — the main blocker for taking money
+
+The full checkout → upgrade → portal → cancel → downgrade loop is already proven in test mode.
+The live product and price already exist:
+
+- product `prod_VB8bxzPEKKbrvP` (KinRead Family)
+- price `price_1UAmKOHVo6yA55eejhkcbZO0` ($5.99/mo)
+
+Remaining:
+
+- [ ] Create a **live-mode** webhook endpoint in the Stripe Dashboard pointing at
       `https://book-content-scanner.onrender.com/api/billing/webhook`
       Events: `checkout.session.completed`, `customer.subscription.created/updated/deleted`
-- [ ] Set in Render: `STRIPE_SECRET_KEY` (live `sk_live_...`), `STRIPE_PRICE_ID` = `price_1UAmKOHVo6yA55eejhkcbZO0`, `STRIPE_WEBHOOK_SECRET` (`whsec_...` from that endpoint)
-- [ ] One real live-card purchase test, then cancel it
-      (the full loop is already proven in test mode - this is just the live repeat)
+- [ ] Set in Render: `STRIPE_SECRET_KEY` (live `sk_live_...`), `STRIPE_PRICE_ID`,
+      `STRIPE_WEBHOOK_SECRET` (from the new endpoint)
+- [ ] One real live-card purchase, confirm the webhook flips the account to `paid`, then cancel
 
-### Render env vars
-- [ ] Set `APP_BASE_URL=https://book-content-scanner.onrender.com` (new - password reset links)
-- [ ] Confirm `SESSION_SECRET` and `DATABASE_URL` are still set
-
-### Affiliate revenue (optional, unblocks money from the links already built)
-- [ ] Apply to Amazon Associates and/or Bookshop.org affiliates
-- [ ] Set `AMAZON_ASSOCIATE_TAG`, `AMAZON_DOMAIN`, `BOOKSHOP_AFFILIATE_ID` in Render
-      (until then the Amazon link works untagged and Bookshop.org stays hidden)
+Live secrets go straight from the Stripe Dashboard into Render — never through the terminal
+or chat, unlike the test-mode setup.
 
 ---
 
-## 2. Still untested
+## 3. Still untested
 
 - [ ] Physical-phone camera + barcode scan on the deployed HTTPS URL
 - [ ] Legal review of `privacy.html` / `terms.html` before scaling to paying customers
 
 ---
 
-## 3. Backlog (not started)
+## 4. Backlog (not started)
 
+- [ ] Affiliate programme applications (Amazon Associates / Bookshop.org). The code is done —
+      links appear untagged until `AMAZON_ASSOCIATE_TAG` / `BOOKSHOP_AFFILIATE_ID` are set in Render
 - [ ] Public SEO pages for cached analyses (`/book/<isbn>`) - the main organic growth channel
 - [ ] Ops: Sentry error tracking, uptime monitoring, database backups
-- [ ] Institutional / API licensing for schools and libraries (Phase 3 of the monetisation plan)
+- [ ] Institutional / API licensing for schools and libraries
 
 ---
 
-## Notes
+## Reference
 
-- Old commits still contain `data/kids.json` and `data/thresholds.json` (real family data). They're
-  untracked going forward, but scrubbing history needs a force-push - not done, decide if it matters.
-- The shared analysis cache is global on purpose: a book any family has analysed is free for everyone
-  and doesn't consume quota.
+**DNS is edited in Kajabi**, not GoDaddy or Cloudflare. `huddlewisdom.com` is registered at
+GoDaddy, points to Cloudflare nameservers, but that Cloudflare zone belongs to Kajabi (the
+website host). There is no Cloudflare account to log into.
+
+**Resend sending domain:** `mail.huddlewisdom.com` (Tokyo region), sender
+`KinRead <noreply@mail.huddlewisdom.com>`.
+
+**Old commits** still contain `data/kids.json` and `data/thresholds.json` (real family data).
+They're untracked going forward, but scrubbing history needs a force-push — decide if it matters.
+
+**The shared analysis cache is global on purpose**: a book any family has analysed is free for
+everyone and doesn't consume quota.
