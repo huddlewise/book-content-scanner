@@ -125,6 +125,32 @@ body {
   color: var(--ink-muted);
   margin: 0 0 0.7rem;
 }
+.account-dropdown-usage .usage-line,
+.account-dropdown-usage .usage-reset {
+  display: block;
+}
+.account-dropdown-usage .usage-line { color: var(--ink); }
+.account-dropdown-usage .usage-reset {
+  font-size: 0.72rem;
+  margin-top: 0.25rem;
+}
+.usage-bar {
+  display: block;
+  height: 5px;
+  margin-top: 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  overflow: hidden;
+}
+.usage-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+.usage-bar-fill.usage-ok { background: var(--primary); }
+.usage-bar-fill.usage-low { background: var(--stamp-amber); }
+.usage-bar-fill.usage-empty { background: var(--stamp-red); }
 .account-dropdown-item {
   display: block;
   width: 100%;
@@ -630,6 +656,39 @@ input:focus, button:focus-visible, textarea:focus {
   border-top: 1px solid var(--line);
   margin: 1.1rem 0;
   padding-top: 1.1rem;
+}
+
+/* ---------- where to get it ---------- */
+.buy-links {
+  border-top: 1px solid var(--line);
+  margin: 1.1rem 0;
+  padding-top: 1.1rem;
+}
+.buy-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.buy-link {
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.buy-link:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+.buy-disclosure {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  margin: 0.6rem 0 0;
 }
 .comparable-titles .card-label { margin-bottom: 0.65rem; }
 .comparable-title {

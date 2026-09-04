@@ -9,6 +9,7 @@ let barcodeHintTimer = null;
 let pendingCoverDetails = null;
 let kidsCache = [];
 let thresholdsCache = {};
+let affiliateConfig = null;
 
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
 loadAccount();
@@ -22,9 +23,8 @@ async function loadAccount() {
 
     document.getElementById('account-trigger').textContent = account.email[0]?.toUpperCase() || '?';
     document.getElementById('account-email').textContent = account.email;
-    document.getElementById('account-usage').textContent = account.analysesLimit
-      ? `${account.analysesUsed}/${account.analysesLimit} free analyses this month`
-      : 'KinRead Family plan';
+    document.getElementById('account-usage').innerHTML = renderUsageMeter(account);
+    affiliateConfig = account.affiliates || null;
     show('account-badge');
 
     const billingBtn = document.getElementById('btn-billing');
@@ -54,6 +54,28 @@ document.addEventListener('click', (e) => {
     document.getElementById('account-trigger').setAttribute('aria-expanded', 'false');
   }
 });
+
+function formatResetDate(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+function renderUsageMeter(account) {
+  if (!account.analysesLimit) {
+    return '<span class="usage-line">KinRead Family plan &middot; unlimited analyses</span>';
+  }
+  const limit = account.analysesLimit;
+  const used = Math.min(Math.max(account.analysesUsed || 0, 0), limit);
+  const remaining = limit - used;
+  const state = remaining === 0 ? 'empty' : remaining <= 1 ? 'low' : 'ok';
+  const resetsOn = account.quotaResetsOn ? formatResetDate(account.quotaResetsOn) : '';
+  return `
+    <span class="usage-line"><strong>${remaining}</strong> of ${limit} free analyses left</span>
+    <span class="usage-bar"><span class="usage-bar-fill usage-${state}" style="width:${Math.round((used / limit) * 100)}%"></span></span>
+    ${resetsOn ? `<span class="usage-reset">Resets ${escapeHtml(resetsOn)}</span>` : ''}
+    <span class="usage-reset">Books another family has already analysed are free.</span>`;
+}
 
 async function startBillingFlow(kind) {
   const endpoint = kind === 'portal' ? '/api/billing/create-portal-session' : '/api/billing/create-checkout-session';
@@ -568,8 +590,10 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) {
       if (res.status === 402) {
+        const resetsOn = data.quotaResetsOn ? formatResetDate(data.quotaResetsOn) : '';
         document.getElementById('analysis-card').innerHTML = `
           <p class="error">${escapeHtml(data.error)}</p>
+          ${resetsOn ? `<p class="muted small">Your free analyses reset on ${escapeHtml(resetsOn)}.</p>` : ''}
           <button id="btn-upgrade-cta" class="btn btn-primary btn-block">Upgrade to KinRead Family</button>`;
         document.getElementById('btn-upgrade-cta').addEventListener('click', () => startBillingFlow('checkout'));
         show('analysis-card');
@@ -707,6 +731,42 @@ function renderFlaggedCategoryDetails(categories) {
   return `<section class="flagged-category-details"><p class="card-label">Why this was flagged</p>${items}</section>`;
 }
 
+// Outbound retailer links. Referral tags come from the server (/api/me) and are optional -
+// without them the links still work, they're just untagged and the disclosure is hidden.
+function buyLinks(book) {
+  const isbn = (book?.isbn || '').replace(/[^0-9Xx]/g, '');
+  const query = [book?.title, (book?.authors || []).join(' ')].filter(Boolean).join(' ').trim();
+  if (!isbn && !query) return [];
+
+  const links = [];
+  const amazon = new URL(`https://${affiliateConfig?.amazonDomain || 'www.amazon.com'}/s`);
+  amazon.searchParams.set('k', isbn || query);
+  amazon.searchParams.set('i', 'stripbooks');
+  if (affiliateConfig?.amazonTag) amazon.searchParams.set('tag', affiliateConfig.amazonTag);
+  links.push({ label: 'Amazon', url: amazon.toString() });
+
+  // Bookshop.org only has a stable deep-link format for affiliates, so skip it when untagged.
+  if (isbn && affiliateConfig?.bookshopId) {
+    links.push({ label: 'Bookshop.org', url: `https://bookshop.org/a/${encodeURIComponent(affiliateConfig.bookshopId)}/${isbn}` });
+  }
+  return links;
+}
+
+function renderBuyLinks(book) {
+  const links = buyLinks(book);
+  if (!links.length) return '';
+  const items = links
+    .map((link) => `<a class="buy-link" href="${escapeHtml(link.url)}" target="_blank" rel="nofollow sponsored noopener">${escapeHtml(link.label)}</a>`)
+    .join('');
+  const earnsCommission = Boolean(affiliateConfig?.amazonTag || affiliateConfig?.bookshopId);
+  return `
+    <section class="buy-links">
+      <p class="card-label">Where to get it</p>
+      <div class="buy-link-row">${items}</div>
+      ${earnsCommission ? '<p class="buy-disclosure">KinRead may earn a small commission from these links, at no extra cost to you.</p>' : ''}
+    </section>`;
+}
+
 function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
@@ -739,6 +799,7 @@ function renderAnalysis(result) {
     <div class="stamp-grid">${stamps}</div>
     ${renderMentalModels(result.mental_models)}
     ${renderComparableTitles(result.comparable_titles)}
+    ${renderBuyLinks(currentBook)}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
     ${sources ? `<ul class="sources">${sources}</ul>` : ''}
     <label for="notes-field">Your notes (optional)</label>
@@ -875,6 +936,7 @@ function renderLibrary(entries) {
             ${renderDiscussionPoints(entry.analysis?.discussion_points || entry.discussion_points, 'How to talk to kids')}
             ${renderMentalModels(entry.analysis?.mental_models)}
             ${renderComparableTitles(entry.analysis?.comparable_titles)}
+            ${renderBuyLinks(entry)}
             ${entry.parentNotes ? `<p class="small"><em>${escapeHtml(entry.parentNotes)}</em></p>` : ''}
             <div class="library-actions">
               <button class="btn-delete" data-key="${escapeHtml(entry.isbn || entry.title)}">Remove</button>
@@ -886,7 +948,7 @@ function renderLibrary(entries) {
 
   list.querySelectorAll('.library-item').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-delete')) return;
+      if (e.target.classList.contains('btn-delete') || e.target.closest('a')) return;
       el.querySelector('.library-item-detail').classList.toggle('hidden');
     });
   });

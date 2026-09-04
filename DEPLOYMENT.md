@@ -12,7 +12,9 @@ This guide covers different ways to deploy KinRead so you and others can access 
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Optional | Owner credentials with unlimited analyses and lesson searches; the owner account is created on first login if needed |
 | `DATABASE_URL` | Recommended for real customers | A Postgres connection string. Without it, accounts and libraries are stored as JSON files on disk - fine for local use, but most cloud hosts wipe local disk on every redeploy, which would delete every customer's account and library |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Required in production | Needed for password reset emails. `RESEND_FROM_EMAIL` must be a verified sender in your Resend account (for example `KinRead <noreply@yourdomain.com>`). |
+| `APP_BASE_URL` | Recommended in production | Your deployment's public URL, e.g. `https://book-content-scanner.onrender.com`. Password reset links are built from it. Without it the link falls back to the request's `Host` header, which a malicious request can spoof to point the reset link at another site. |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` | Optional | Only needed once you're ready to accept real subscription payments |
+| `AMAZON_ASSOCIATE_TAG`, `AMAZON_DOMAIN`, `BOOKSHOP_AFFILIATE_ID` | Optional | Referral tags for the "Where to get it" links on each analysis. Without them the Amazon link still appears (untagged, no commission notice) and the Bookshop.org link is hidden. `AMAZON_DOMAIN` defaults to `www.amazon.com` - set it to your local storefront, e.g. `www.amazon.com.au` |
 
 KinRead now requires every visitor to sign up for a free account (email + password) - there's no more single shared family password. Each account gets its own private library, kid profiles, and thresholds, plus 5 free content analyses a month. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the owner account before deployment; passwords cannot be recovered from the stored hashes.
 

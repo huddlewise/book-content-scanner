@@ -155,6 +155,14 @@ const FREE_TIER_MONTHLY_LIMIT = 5;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase() || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
+// Optional referral tags. Without them the app still links out to retailers, just untagged,
+// and the frontend hides the commission disclosure.
+const AFFILIATES = {
+  amazonTag: process.env.AMAZON_ASSOCIATE_TAG?.trim() || '',
+  amazonDomain: process.env.AMAZON_DOMAIN?.trim() || 'www.amazon.com',
+  bookshopId: process.env.BOOKSHOP_AFFILIATE_ID?.trim() || '',
+};
+
 function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
   const hash = scryptSync(password, salt, 64).toString('hex');
@@ -216,12 +224,12 @@ function isValidEmail(email) {
 // Sends via Resend in production. Local development can use the console fallback so the
 // password reset flow remains testable without an email provider. Reset links are never
 // returned from an API response.
-async function sendEmail({ to, subject, html }) {
+async function sendEmail({ to, subject, html, text }) {
   if (!process.env.RESEND_API_KEY) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('RESEND_API_KEY is required in production');
     }
-    const plainText = html
+    const plainText = text || html
       .replace(/<a href="([^"]+)"[^>]*>/gi, '$1 (') // keep link URLs visible before stripping tags
       .replace(/<\/a>/gi, ')')
       .replace(/<[^>]+>/g, ' ')
@@ -246,6 +254,8 @@ async function sendEmail({ to, subject, html }) {
         to,
         subject,
         html,
+        // A plain-text alternative is what keeps transactional mail out of spam filters.
+        ...(text ? { text } : {}),
       }),
     });
 
@@ -477,6 +487,44 @@ app.post('/api/logout', (_req, res) => {
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Reset links must never be built from an attacker-controllable Host header, so a configured
+// APP_BASE_URL always wins. The request origin is only a convenience fallback for local dev.
+function appBaseUrl(req) {
+  const configured = process.env.APP_BASE_URL?.trim().replace(/\/+$/, '');
+  if (configured) return configured;
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+function passwordResetEmail(resetUrl) {
+  return {
+    subject: 'Reset your KinRead password',
+    text: [
+      'Someone requested a password reset for your KinRead account.',
+      '',
+      'Choose a new password using the link below (valid for 1 hour):',
+      resetUrl,
+      '',
+      "If this wasn't you, you can safely ignore this email - your password won't change.",
+      '',
+      'KinRead - know the book before you say yes.',
+    ].join('\n'),
+    html: `<!doctype html>
+<html lang="en"><body style="margin:0;padding:24px;background:#e9f8f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#103b42;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;margin:0 auto;background:#fbfffe;border-radius:18px;padding:32px;">
+    <tr><td>
+      <p style="font-size:1.35rem;font-weight:700;margin:0 0 24px;letter-spacing:-0.02em;">Kin<span style="color:#00a99d;">Read</span></p>
+      <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your KinRead account.</p>
+      <p style="margin:0 0 24px;">
+        <a href="${resetUrl}" style="display:inline-block;background:#00a99d;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px;">Choose a new password</a>
+      </p>
+      <p style="margin:0 0 16px;line-height:1.6;font-size:0.9rem;color:#54777b;">This link is valid for one hour. If the button doesn't work, paste this into your browser:<br /><span style="word-break:break-all;">${resetUrl}</span></p>
+      <p style="margin:0;line-height:1.6;font-size:0.9rem;color:#54777b;">If this wasn't you, you can safely ignore this email &mdash; your password won't change.</p>
+    </td></tr>
+  </table>
+</body></html>`,
+  };
+}
+
 app.post('/api/forgot-password', forgotPasswordRateLimit, async (req, res) => {
   const { email } = req.body || {};
   // Always respond the same way whether or not the account exists, so this endpoint can't
@@ -492,15 +540,8 @@ app.post('/api/forgot-password', forgotPasswordRateLimit, async (req, res) => {
     account.resetTokenHash = hashToken(token);
     account.resetTokenExpiresAt = Date.now() + RESET_TOKEN_TTL_MS;
 
-    const origin = `${req.protocol}://${req.get('host')}`;
-    const resetUrl = `${origin}/reset-password.html?token=${token}`;
-    const sent = await sendEmail({
-      to: account.email,
-      subject: 'Reset your KinRead password',
-      html: `<p>Someone requested a password reset for your KinRead account.</p>
-        <p><a href="${resetUrl}">Click here to choose a new password</a> (valid for 1 hour).</p>
-        <p>If this wasn't you, you can safely ignore this email.</p>`,
-    });
+    const resetUrl = `${appBaseUrl(req)}/reset-password.html?token=${token}`;
+    const sent = await sendEmail({ to: account.email, ...passwordResetEmail(resetUrl) });
 
     if (!sent) {
       delete account.resetTokenHash;
@@ -559,6 +600,8 @@ app.get('/api/me', async (req, res) => {
     plan: account.plan,
     analysesUsed,
     analysesLimit: account.plan === 'paid' ? null : FREE_TIER_MONTHLY_LIMIT,
+    quotaResetsOn: currentPeriodEnd(),
+    affiliates: AFFILIATES,
   });
 });
 
@@ -766,6 +809,11 @@ function currentPeriodStart() {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
+function currentPeriodEnd() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+}
+
 // Resets the monthly counter if we've rolled into a new month, then enforces the free-tier
 // cap (paid accounts are unlimited). Called only on a cache miss, right before paying for a
 // fresh Claude analysis - cached results never count against a customer's quota.
@@ -783,6 +831,7 @@ async function checkAndConsumeAnalysisQuota(accountId) {
     return {
       ok: false,
       error: `You've used your ${FREE_TIER_MONTHLY_LIMIT} free analyses this month. Upgrade to KinRead Family for unlimited analyses.`,
+      quotaResetsOn: currentPeriodEnd(),
     };
   }
   account.analysesUsed += 1;
@@ -988,7 +1037,7 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
   // Only a cache miss costs a real Claude call, so only a cache miss counts against quota.
   const quota = await checkAndConsumeAnalysisQuota(req.accountId);
   if (!quota.ok) {
-    return res.status(402).json({ error: quota.error });
+    return res.status(402).json({ error: quota.error, quotaResetsOn: quota.quotaResetsOn });
   }
 
   const bookDescriptor = [
@@ -1068,7 +1117,7 @@ app.post('/api/discover-by-lesson', analyzeRateLimit, async (req, res) => {
   if (cache[cacheKey]) return res.json({ ...cache[cacheKey], cached: true });
 
   const quota = await checkAndConsumeAnalysisQuota(req.accountId);
-  if (!quota.ok) return res.status(402).json({ error: quota.error });
+  if (!quota.ok) return res.status(402).json({ error: quota.error, quotaResetsOn: quota.quotaResetsOn });
 
   const prompt = `A parent wants to find children's or young-adult storybooks (real, existing published books - never invent a title) matching the following theme, subject, genre, mental-model lesson, or idea. This may be a plot subject such as murder, mystery, or detectives; a genre such as detective fiction; or a broader lesson such as handling big feelings or seeing two sides of a problem. Interpret the request naturally and recommend books that genuinely fit it through their plot, characters, or reading experience:
 
