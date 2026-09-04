@@ -10,22 +10,17 @@ Last updated: 2026-09-04
 - Branded HTML + plain-text password reset email
 - **Resend fully working**, local and production, from a verified sending domain
 - Separate Resend API keys per environment, both tested
-- Root SPF + Google Workspace DKIM records published for `huddlewisdom.com`
+- Root SPF + Google Workspace DKIM records published and Gmail authentication started for `huddlewisdom.com`
+- Test email from Google Workspace passed `SPF`, `DKIM`, and `DMARC`
+- Physical phone test passed: barcode scan, camera permission, Google Books lookup, and cover photo reading
+- Refreshed Anthropic key after cover reading exposed an upstream `401`; production cover reading now works
+- Added clearer server-side cover-reading error diagnostics and deployed them as `1e10cb9`
 
-Committed and deployed as `19d9990`. Changes to this file since then are uncommitted.
-
----
-
-## 1. Finish first (small, already in motion)
-
-- [ ] **Google Admin → Apps → Google Workspace → Gmail → Authenticate email → Start
-      authentication.** The DKIM record is published and verified, but Gmail won't sign anything
-      until this button is clicked. Then send a test to a Gmail address and check **Show original**
-      for `SPF: PASS` and `DKIM: PASS` with domain `huddlewisdom.com`.
+Main feature work committed and deployed as `19d9990`; cover diagnostics deployed as `1e10cb9`.
 
 ---
 
-## 2. Live Stripe — the main blocker for taking money
+## 1. Live Stripe — the main blocker for taking money
 
 The full checkout → upgrade → portal → cancel → downgrade loop is already proven in test mode.
 The live product and price already exist:
@@ -47,14 +42,13 @@ or chat, unlike the test-mode setup.
 
 ---
 
-## 3. Still untested
+## 2. Still untested
 
-- [ ] Physical-phone camera + barcode scan on the deployed HTTPS URL
 - [ ] Legal review of `privacy.html` / `terms.html` before scaling to paying customers
 
 ---
 
-## 4. Backlog (not started)
+## 3. Backlog (not started)
 
 - [ ] Affiliate programme applications (Amazon Associates / Bookshop.org). The code is done —
       links appear untagged until `AMAZON_ASSOCIATE_TAG` / `BOOKSHOP_AFFILIATE_ID` are set in Render
