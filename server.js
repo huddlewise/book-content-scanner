@@ -126,6 +126,29 @@ const loginRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
 const signupRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 10 });
 const forgotPasswordRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 5 });
 
+function upstreamErrorMessage(err, fallback) {
+  const status = err?.status || err?.response?.status;
+  const message = err?.error?.message || err?.message || '';
+  const lowerMessage = message.toLowerCase();
+
+  if (status === 401 || lowerMessage.includes('api key')) {
+    return 'Cover reading is not configured correctly on the server. Check the Anthropic API key and try again.';
+  }
+  if (status === 402 || lowerMessage.includes('credit balance') || lowerMessage.includes('billing')) {
+    return 'Cover reading is paused because the Anthropic account needs billing attention.';
+  }
+  if (status === 413 || lowerMessage.includes('too large') || lowerMessage.includes('image exceeds')) {
+    return 'That photo is too large to read. Try again a little farther back, or enter the details manually.';
+  }
+  if (status === 429 || lowerMessage.includes('rate limit')) {
+    return 'Cover reading is temporarily busy. Please wait a minute and try again.';
+  }
+  if (status === 400 && lowerMessage.includes('model')) {
+    return 'Cover reading is using a model that is not available for this Anthropic account.';
+  }
+  return fallback;
+}
+
 // Unauthenticated on purpose - for uptime monitors (UptimeRobot, Render/Fly health checks)
 // so they don't get redirected to the login page and reported as down.
 app.get('/health', async (_req, res) => {
@@ -1262,8 +1285,14 @@ app.post('/api/identify-cover', coverIdRateLimit, async (req, res) => {
 
     res.json(parsed);
   } catch (err) {
-    console.error('Cover read error:', err);
-    res.status(502).json({ error: 'Could not read the cover. Check your connection and try again.' });
+    console.error('Cover read error:', {
+      status: err?.status || err?.response?.status,
+      type: err?.error?.type,
+      message: err?.error?.message || err?.message,
+    });
+    res.status(502).json({
+      error: upstreamErrorMessage(err, 'Could not read the cover. Try again, or enter the details manually.'),
+    });
   }
 });
 
