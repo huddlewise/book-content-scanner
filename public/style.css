@@ -787,6 +787,74 @@ input:focus, button:focus-visible, textarea:focus {
   margin: 0.2rem 0 0;
 }
 
+/* ---------- public book guide ---------- */
+.public-book-page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+.back-link {
+  color: var(--primary-dark);
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  text-decoration: none;
+}
+.public-book-card {
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+}
+.public-book-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1.25rem;
+}
+.public-book-header img {
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  flex: 0 0 7.5rem;
+  max-height: 11rem;
+  object-fit: cover;
+  width: 7.5rem;
+}
+.public-book-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  line-height: 1.08;
+  margin: 0.2rem 0 0.5rem;
+}
+.public-book-author { color: var(--ink-muted); margin: 0 0 0.85rem; }
+.public-book-summary { font-size: 1.04rem; line-height: 1.65; margin: 1.7rem 0; }
+.public-book-section { border-top: 1px solid var(--line); margin-top: 1.5rem; padding-top: 1.25rem; }
+.public-book-section h2 { font-family: var(--font-display); font-size: 1.1rem; margin: 0 0 0.75rem; }
+.public-book-section li { line-height: 1.55; margin-top: 0.45rem; }
+.public-book-section a { color: var(--primary-dark); }
+.public-category-grid { display: grid; gap: 0.6rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.public-category { background: var(--teal-soft); border-radius: 8px; padding: 0.75rem; }
+.public-category strong, .public-category span { display: block; }
+.public-category strong { font-size: 0.82rem; }
+.public-category span { color: var(--teal-dark); font-size: 0.78rem; font-weight: 700; margin-top: 0.2rem; text-transform: capitalize; }
+.public-category p { font-size: 0.78rem; line-height: 1.4; margin: 0.35rem 0 0; }
+.public-book-caveat { background: var(--alert-soft); border-radius: 8px; line-height: 1.5; margin: 1.5rem 0 0; padding: 0.85rem; }
+.public-book-disclaimer { color: var(--ink-muted); font-size: 0.8rem; line-height: 1.5; margin: 1.5rem 0; }
+.public-book-cta { text-decoration: none; }
+.public-guide-link {
+  color: var(--primary-dark);
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0.9rem 0 1.1rem;
+}
+@media (max-width: 460px) {
+  .public-book-header { gap: 0.85rem; }
+  .public-book-header img { flex-basis: 5.5rem; max-height: 8rem; width: 5.5rem; }
+  .public-category-grid { grid-template-columns: 1fr; }
+}
+
 .content-alert {
   display: flex;
   flex-direction: column;

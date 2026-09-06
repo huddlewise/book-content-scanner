@@ -589,6 +589,7 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
         authors: currentBook.authors,
         isbn: currentBook.isbn,
         publisher: currentBook.publisher,
+        thumbnail: currentBook.thumbnail,
       }),
     });
     const data = await res.json();
@@ -792,6 +793,12 @@ function renderBuyLinks(book) {
     </section>`;
 }
 
+function renderPublicGuideLink(book) {
+  const isbn = (book?.isbn || '').replace(/[^0-9Xx]/g, '');
+  if (!isbn) return '';
+  return `<a class="public-guide-link" href="/book/${encodeURIComponent(isbn)}" target="_blank" rel="noopener">View public guide</a>`;
+}
+
 function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
@@ -828,6 +835,7 @@ function renderAnalysis(result) {
     ${renderBuyLinks(currentBook)}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
     ${sources ? `<ul class="sources">${sources}</ul>` : ''}
+    ${renderPublicGuideLink(currentBook)}
     <label for="notes-field">Your notes (optional)</label>
     <textarea id="notes-field" class="notes-field" placeholder="Anything you want to remember about this one..."></textarea>
     <button id="btn-save" class="btn btn-primary btn-block">Save to library</button>

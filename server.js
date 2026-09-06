@@ -598,6 +598,117 @@ app.post('/api/reset-password', async (req, res) => {
   res.json({ ok: true });
 });
 
+const PUBLIC_CATEGORY_LABELS = {
+  sexual_content: 'Sexual content',
+  language: 'Language / profanity',
+  violence: 'Violence',
+  substance_use: 'Substance use',
+  self_harm_suicide: 'Self-harm / suicide',
+  lgbtq_content: 'LGBTQ+ content',
+  other_themes: 'Other themes',
+};
+
+function escapePublicHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function safePublicUrl(value) {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+async function publicBookMetadata(isbn, cachedBook) {
+  if (cachedBook?.title) return cachedBook;
+  let url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`;
+  if (process.env.GOOGLE_BOOKS_API_KEY) url += `&key=${process.env.GOOGLE_BOOKS_API_KEY}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    const info = data.items?.[0]?.volumeInfo;
+    if (info) {
+      return {
+        isbn,
+        title: info.title || `Book ${isbn}`,
+        authors: info.authors || [],
+        thumbnail: info.imageLinks?.thumbnail?.replace('http://', 'https://') || '',
+      };
+    }
+  } catch (err) {
+    console.warn(`Could not retrieve public metadata for ISBN ${isbn}:`, err.message);
+  }
+  return { isbn, title: `Book ${isbn}`, authors: [], thumbnail: '' };
+}
+
+function publicBookPage(book, analysis) {
+  const categoryRows = Object.entries(PUBLIC_CATEGORY_LABELS).map(([key, label]) => {
+    const category = analysis.categories?.[key] || {};
+    const level = category.level || 'none';
+    return `<article class="public-category"><strong>${escapePublicHtml(label)}</strong><span>${escapePublicHtml(level === 'none' ? 'None noted' : level)}</span>${category.notes ? `<p>${escapePublicHtml(category.notes)}</p>` : ''}</article>`;
+  }).join('');
+  const models = (analysis.mental_models || []).filter((model) => model?.name).slice(0, 4)
+    .map((model) => `<li><strong>${escapePublicHtml(model.name)}</strong>${model.takeaway ? `: ${escapePublicHtml(model.takeaway)}` : ''}</li>`).join('');
+  const sources = (analysis.sources || []).map((source) => {
+    const url = safePublicUrl(source?.url);
+    return url ? `<li><a href="${escapePublicHtml(url)}" rel="noopener noreferrer" target="_blank">${escapePublicHtml(source.title || url)}</a></li>` : '';
+  }).filter(Boolean).join('');
+  const byline = (book.authors || []).filter(Boolean).join(', ');
+  const image = safePublicUrl(book.thumbnail);
+  const description = analysis.summary || `A KinRead content overview for ${book.title}.`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="${escapePublicHtml(description)}" />
+  <title>${escapePublicHtml(book.title)} content guide | KinRead</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="public-book-page">
+    <a class="back-link" href="/login">KinRead</a>
+    <article class="public-book-card">
+      <header class="public-book-header">
+        ${image ? `<img src="${escapePublicHtml(image)}" alt="Cover of ${escapePublicHtml(book.title)}" />` : ''}
+        <div>
+          <p class="card-label">Book content guide</p>
+          <h1>${escapePublicHtml(book.title)}</h1>
+          ${byline ? `<p class="public-book-author">${escapePublicHtml(byline)}</p>` : ''}
+          ${analysis.age_guidance ? `<span class="info-chip">Suggested age: ${escapePublicHtml(analysis.age_guidance)}</span>` : ''}
+        </div>
+      </header>
+      <p class="public-book-summary">${escapePublicHtml(analysis.summary || 'No summary is available for this book yet.')}</p>
+      <section class="public-book-section"><h2>Content at a glance</h2><div class="public-category-grid">${categoryRows}</div></section>
+      ${models ? `<section class="public-book-section"><h2>Ways of thinking this story explores</h2><ul>${models}</ul></section>` : ''}
+      ${analysis.caveat ? `<p class="public-book-caveat">${escapePublicHtml(analysis.caveat)}</p>` : ''}
+      ${sources ? `<section class="public-book-section"><h2>Sources</h2><ul class="sources">${sources}</ul></section>` : ''}
+      <p class="public-book-disclaimer">This is a shared book analysis, not a family verdict. KinRead keeps individual children, family settings, library entries, and notes private.</p>
+      <a class="btn btn-primary public-book-cta" href="/login">Check this book for your family</a>
+    </article>
+  </main>
+</body>
+</html>`;
+}
+
+app.get('/book/:isbn', async (req, res) => {
+  const isbn = String(req.params.isbn || '').replace(/[^0-9Xx]/g, '');
+  if (isbn.length < 9 || isbn.length > 13) return res.status(404).send('Book not found.');
+  const cache = await readAnalysisCache();
+  const cachedAnalysis = cache[`isbn:${isbn.toLowerCase()}`];
+  if (!cachedAnalysis?.identified && cachedAnalysis?.identified !== undefined) return res.status(404).send('Book not found.');
+  if (!cachedAnalysis) return res.status(404).send('This book has not been analysed by KinRead yet.');
+
+  const { publicBook, ...analysis } = cachedAnalysis;
+  const book = await publicBookMetadata(isbn, publicBook);
+  res.type('html').send(publicBookPage(book, analysis));
+});
+
 app.use((req, res, next) => {
   const publicPaths = ['/login', '/api/login', '/api/signup', '/api/forgot-password', '/api/reset-password', '/privacy.html', '/terms.html', '/reset-password.html', '/style.css'];
   if (publicPaths.includes(req.path)) return next();
@@ -1062,7 +1173,7 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
     return res.status(500).json({ error: 'Server has no ANTHROPIC_API_KEY configured. Add one to your .env file and restart.' });
   }
 
-  const { title, authors, isbn, publisher, forceRefresh } = req.body;
+  const { title, authors, isbn, publisher, thumbnail, forceRefresh } = req.body;
   if (!title) {
     return res.status(400).json({ error: 'Title is required to analyse a book.' });
   }
@@ -1070,7 +1181,8 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
   const cacheKey = analysisCacheKey({ isbn, title, authors });
   const cache = await readAnalysisCache();
   if (!forceRefresh && cache[cacheKey]) {
-    return res.json({ ...cache[cacheKey], cached: true });
+    const { publicBook, ...cachedAnalysis } = cache[cacheKey];
+    return res.json({ ...cachedAnalysis, cached: true });
   }
 
   // Only a cache miss costs a real Claude call, so only a cache miss counts against quota.
@@ -1129,7 +1241,15 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
     const result = stripCitationArtifacts(parsed);
     // Don't cache low-confidence misses - a retry (or a future prompt tweak) might do better.
     if (result.identified !== false) {
-      cache[cacheKey] = result;
+      cache[cacheKey] = {
+        ...result,
+        publicBook: {
+          isbn: (isbn || '').replace(/[^0-9Xx]/g, ''),
+          title,
+          authors: Array.isArray(authors) ? authors : [],
+          thumbnail: typeof thumbnail === 'string' ? thumbnail : '',
+        },
+      };
       await writeAnalysisCache(cache);
     }
 
