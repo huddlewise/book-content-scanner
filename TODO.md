@@ -1,6 +1,6 @@
 # KinRead - To Do
 
-Last updated: 2026-09-04
+Last updated: 2026-09-06
 
 ## Done this session
 
@@ -52,8 +52,10 @@ or chat, unlike the test-mode setup.
 
 - [ ] Affiliate programme applications (Amazon Associates / Bookshop.org). The code is done —
       links appear untagged until `AMAZON_ASSOCIATE_TAG` / `BOOKSHOP_AFFILIATE_ID` are set in Render
-- [ ] Public SEO pages for cached analyses (`/book/<isbn>`) - the main organic growth channel
-- [ ] Ops: Sentry error tracking, uptime monitoring, database backups
+- [x] Public SEO pages for cached analyses (`/book/<isbn>`), including canonical/Open Graph metadata,
+      `/sitemap.xml`, and `/robots.txt`
+- [ ] Ops: Sentry error tracking is ready (`SENTRY_DSN`); configure the Sentry DSN, uptime monitor,
+      and Supabase backup/recovery checks in provider dashboards (see `OPERATIONS.md`)
 - [ ] Institutional / API licensing for schools and libraries
 
 ---

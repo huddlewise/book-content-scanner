@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import Stripe from 'stripe';
+import * as Sentry from '@sentry/node';
 import pg from 'pg';
 import { readFile, writeFile, mkdir, rm } from 'fs/promises';
 import path from 'path';
@@ -34,6 +35,11 @@ const DEFAULT_THRESHOLDS = {
 
 const app = express();
 app.set('trust proxy', 1); // needed for correct req.ip behind Render/Fly/Railway's proxy
+
+const sentryEnabled = Boolean(process.env.SENTRY_DSN);
+if (sentryEnabled) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, sendDefaultPii: false });
+}
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
@@ -643,7 +649,7 @@ async function publicBookMetadata(isbn, cachedBook) {
   return { isbn, title: `Book ${isbn}`, authors: [], thumbnail: '' };
 }
 
-function publicBookPage(book, analysis) {
+function publicBookPage(book, analysis, canonicalUrl) {
   const categoryRows = Object.entries(PUBLIC_CATEGORY_LABELS).map(([key, label]) => {
     const category = analysis.categories?.[key] || {};
     const level = category.level || 'none';
@@ -665,6 +671,12 @@ function publicBookPage(book, analysis) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="${escapePublicHtml(description)}" />
+  <link rel="canonical" href="${escapePublicHtml(canonicalUrl)}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${escapePublicHtml(book.title)} content guide | KinRead" />
+  <meta property="og:description" content="${escapePublicHtml(description)}" />
+  <meta property="og:url" content="${escapePublicHtml(canonicalUrl)}" />
+  ${image ? `<meta property="og:image" content="${escapePublicHtml(image)}" />` : ''}
   <title>${escapePublicHtml(book.title)} content guide | KinRead</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -706,7 +718,24 @@ app.get('/book/:isbn', async (req, res) => {
 
   const { publicBook, ...analysis } = cachedAnalysis;
   const book = await publicBookMetadata(isbn, publicBook);
-  res.type('html').send(publicBookPage(book, analysis));
+  const canonicalUrl = `${appBaseUrl(req)}/book/${encodeURIComponent(isbn)}`;
+  res.type('html').send(publicBookPage(book, analysis, canonicalUrl));
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+  const cache = await readAnalysisCache();
+  const isbnPaths = Object.entries(cache)
+    .filter(([key, analysis]) => /^isbn:[0-9x]{9,13}$/i.test(key) && analysis?.identified !== false)
+    .map(([key]) => key.slice(5).toLowerCase())
+    .sort()
+    .slice(0, 50000);
+  const baseUrl = appBaseUrl(req);
+  const urls = isbnPaths.map((isbn) => `  <url><loc>${escapePublicHtml(`${baseUrl}/book/${isbn}`)}</loc></url>`).join('\n');
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${appBaseUrl(req)}/sitemap.xml\n`);
 });
 
 app.use((req, res, next) => {
@@ -1469,6 +1498,10 @@ app.delete('/api/library/:key', async (req, res) => {
   await writeLibrary(req.accountId, filtered);
   res.json({ deleted: filtered.length !== entries.length });
 });
+
+if (sentryEnabled) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 const PORT = process.env.PORT || 3000;
 initializeDatabase()
