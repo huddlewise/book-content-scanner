@@ -703,7 +703,8 @@ input:focus, button:focus-visible, textarea:focus {
 }
 .suggested-book small { color: var(--ink-muted); }
 .suggested-book-reason { line-height: 1.35; max-width: 52%; }
-.lesson-book-title {
+.lesson-book-title,
+.comparable-book-title {
   border: 0;
   background: transparent;
   color: var(--primary-dark);
@@ -718,7 +719,9 @@ input:focus, button:focus-visible, textarea:focus {
   transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 .lesson-book-title:hover,
-.lesson-book-title:focus-visible {
+.lesson-book-title:focus-visible,
+.comparable-book-title:hover,
+.comparable-book-title:focus-visible {
   color: var(--teal-dark);
   text-decoration-color: currentColor;
 }

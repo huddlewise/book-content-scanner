@@ -509,7 +509,7 @@ function lookUpSuggestedBook(button) {
 }
 
 document.addEventListener('click', (event) => {
-  const button = event.target.closest('.lesson-lookup-btn, .lesson-book-title, .suggested-book');
+  const button = event.target.closest('.lesson-lookup-btn, .lesson-book-title, .comparable-book-title, .suggested-book');
   if (button) lookUpSuggestedBook(button);
 });
 
@@ -709,7 +709,7 @@ function renderComparableTitles(titles) {
       <div class="comparable-title">
         <span class="comparable-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
         <div>
-          <p class="comparable-title-name">${escapeHtml(t.title)}${t.author ? ` <span class="muted">- ${escapeHtml(t.author)}</span>` : ''}</p>
+          <p class="comparable-title-name"><button class="comparable-book-title" data-title="${escapeHtml(t.title)}" data-author="${escapeHtml(t.author || '')}">${escapeHtml(t.title)}</button>${t.author ? ` <span class="muted">- ${escapeHtml(t.author)}</span>` : ''}</p>
           ${t.why ? `<p class="comparable-title-why">${escapeHtml(t.why)}</p>` : ''}
         </div>
       </div>`;
@@ -982,7 +982,7 @@ function renderLibrary(entries) {
 
   list.querySelectorAll('.library-item').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-delete') || e.target.closest('a')) return;
+      if (e.target.classList.contains('btn-delete') || e.target.closest('a, .comparable-book-title')) return;
       el.querySelector('.library-item-detail').classList.toggle('hidden');
     });
   });
