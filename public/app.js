@@ -157,17 +157,21 @@ document.getElementById('btn-confirm-delete').addEventListener('click', async ()
 });
 
 // ---------- view switching ----------
+function activateView(view) {
+  const tab = document.querySelector(`.tab[data-view="${view}"]`);
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach((item) => { item.classList.remove('active'); item.setAttribute('aria-selected', 'false'); });
+  document.querySelectorAll('.view').forEach((item) => item.classList.remove('active'));
+  tab.classList.add('active');
+  tab.setAttribute('aria-selected', 'true');
+  document.getElementById(`view-${view}`).classList.add('active');
+  if (view === 'library') loadLibrary();
+  if (view === 'family') loadFamily();
+  if (view === 'scan') stopCamera();
+}
+
 document.querySelectorAll('.tab').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((t) => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
-    document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
-    tab.classList.add('active');
-    tab.setAttribute('aria-selected', 'true');
-    document.getElementById(`view-${tab.dataset.view}`).classList.add('active');
-    if (tab.dataset.view === 'library') loadLibrary();
-    if (tab.dataset.view === 'family') loadFamily();
-    if (tab.dataset.view === 'scan') stopCamera();
-  });
+  tab.addEventListener('click', () => activateView(tab.dataset.view));
 });
 
 // ---------- camera: barcode scanning + cover photo capture ----------
@@ -504,6 +508,7 @@ function renderLessonResults(books, query) {
 function lookUpSuggestedBook(button) {
   const q = `${button.dataset.title} ${button.dataset.author}`.trim();
   document.getElementById('input-title-search').value = q;
+  activateView('scan');
   lookupBook({ q });
   document.getElementById('book-card')?.scrollIntoView({ behavior: 'smooth' });
 }
