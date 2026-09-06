@@ -961,6 +961,22 @@ const ANALYSIS_SCHEMA_PROMPT = `Respond with ONLY a single valid JSON object - n
       "why": "one short neutral sentence on what's similar - content level, themes, or reading experience"
     }
   ],
+  "suggested_titles": [
+    {
+      "title": "a real, published book suitable as a next read for a similar audience",
+      "author": "author name",
+      "why": "one short neutral sentence on why it is a good next read",
+      "categories": {
+        "sexual_content": { "level": "none" | "mild" | "moderate" | "strong" },
+        "language": { "level": "none" | "mild" | "moderate" | "strong" },
+        "violence": { "level": "none" | "mild" | "moderate" | "strong" },
+        "substance_use": { "level": "none" | "mild" | "moderate" | "strong" },
+        "self_harm_suicide": { "level": "none" | "mild" | "moderate" | "strong" },
+        "lgbtq_content": { "level": "none" | "minor" | "central" },
+        "other_themes": { "level": "none" | "minor" | "central" }
+      }
+    }
+  ],
   "sources": [ { "title": "source name", "url": "https://..." } ],
   "caveat": "note here if identification is uncertain, sources disagree, or coverage is thin - otherwise empty string"
 }`;
@@ -1070,9 +1086,13 @@ app.post('/api/analyze', analyzeRateLimit, async (req, res) => {
     isbn ? `ISBN: ${isbn}` : null,
   ].filter(Boolean).join('\n');
 
+  const suggestionInstruction = 'In suggested_titles, recommend up to three real, published next reads for a similar audience. Independently assess every category level for each suggested title using the same definitions as this book. Only include titles whose content levels you can assess with reasonable confidence; return an empty array rather than guessing.';
+
   const prompt = `A parent is deciding whether the following children's or young-adult book is a fit for their family. Research this specific edition using web search - check sources like Common Sense Media, BookTrust, Kirkus Reviews, School Library Journal, Goodreads content-warning threads, or the publisher's own age guidance. Search efficiently: a couple of well-chosen queries covering the most reliable sources are better than many broad ones.
 
 ${bookDescriptor}
+
+${suggestionInstruction}
 
 Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If the story raises meaningful issues a parent may want to talk through with a child, include up to three discussion_points. Base each talking_tip on an appropriate, practical child psychiatry or psychology principle, such as emotion coaching (notice and name feelings), validation before problem-solving, developmentally appropriate perspective-taking, collaborative coping and safety planning, or repair after conflict. Where the story involves belonging, competition, mistaken goals, encouragement, or independence, you may also use an Adlerian lens: belonging and significance, agency within limits, encouragement over praise, and curiosity about the child's private logic. Put the chosen principle in the principle field. Use these frameworks as flexible conversation lenses, not diagnoses or treatment; do not label a child, predict behaviour, give clinical advice, or imply that an Adlerian interpretation is definitive. Write parent-facing guidance in plain, intelligent, restrained UK English. Keep sentences short and clean. State the substantive point directly. Avoid therapy-speak, motivational language, generic social-media phrasing, rhetorical flourishes, and unnecessary hedging. Distinguish what the story shows from what a parent might reasonably discuss. Keep suggestions neutral, practical, culturally respectful, and non-diagnostic; return an empty array when no clear discussion angle stands out. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
 

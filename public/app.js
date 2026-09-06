@@ -490,7 +490,7 @@ function renderLessonResults(books, query) {
         <div class="comparable-title">
           <span class="comparable-icon" aria-hidden="true">${bookIcon}</span>
           <div>
-            <p class="comparable-title-name">${escapeHtml(b.title)}${b.author ? ` <span class="muted">- ${escapeHtml(b.author)}</span>` : ''}</p>
+            <p class="comparable-title-name"><button class="lesson-book-title" data-title="${escapeHtml(b.title)}" data-author="${escapeHtml(b.author || '')}">${escapeHtml(b.title)}</button>${b.author ? ` <span class="muted">- ${escapeHtml(b.author)}</span>` : ''}</p>
             ${b.ageRange ? `<p class="muted small">Ages ${escapeHtml(b.ageRange)}</p>` : ''}
             ${b.why ? `<p class="comparable-title-why">${escapeHtml(b.why)}</p>` : ''}
             <button class="link-btn lesson-lookup-btn" data-title="${escapeHtml(b.title)}" data-author="${escapeHtml(b.author || '')}">Look up this book</button>
@@ -498,16 +498,20 @@ function renderLessonResults(books, query) {
         </div>`;
     }).filter(Boolean).join('')}
   `;
-  container.querySelectorAll('.lesson-lookup-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const q = `${btn.dataset.title} ${btn.dataset.author}`.trim();
-      document.getElementById('input-title-search').value = q;
-      lookupBook({ q });
-      document.getElementById('book-card')?.scrollIntoView({ behavior: 'smooth' });
-    });
-  });
   show('lesson-results');
 }
+
+function lookUpSuggestedBook(button) {
+  const q = `${button.dataset.title} ${button.dataset.author}`.trim();
+  document.getElementById('input-title-search').value = q;
+  lookupBook({ q });
+  document.getElementById('book-card')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('.lesson-lookup-btn, .lesson-book-title, .suggested-book');
+  if (button) lookUpSuggestedBook(button);
+});
 
 // ---------- lookup ----------
 async function lookupBook(payload) {
@@ -713,6 +717,27 @@ function renderComparableTitles(titles) {
   return `<section class="comparable-titles"><p class="card-label">If you know one of these, you'll know what to expect</p>${items}</section>`;
 }
 
+function renderSuggestedTitles(titles) {
+  if (!kidsCache.length || !Array.isArray(titles)) return '';
+  const suitable = titles.filter((title) => title?.title
+    && kidsCache.every((kid) => computeVerdict(title.categories || {}, kid, thresholdsCache).ok));
+  if (!suitable.length) return '';
+
+  const items = suitable.slice(0, 3).map((title) => `
+    <button class="suggested-book" data-title="${escapeHtml(title.title)}" data-author="${escapeHtml(title.author || '')}">
+      <span><strong>${escapeHtml(title.title)}</strong>${title.author ? `<small>${escapeHtml(title.author)}</small>` : ''}</span>
+      <span class="suggested-book-reason">${escapeHtml(title.why || 'A similar next read')}</span>
+    </button>`).join('');
+
+  return `
+    <section class="suggested-books" aria-labelledby="suggested-books-heading">
+      <p class="card-label">Your next read</p>
+      <h2 id="suggested-books-heading">Suggested books</h2>
+      <p class="hint">These suggestions are within the thresholds you have set for every child.</p>
+      <div class="suggested-book-list">${items}</div>
+    </section>`;
+}
+
 function renderFlaggedCategoryDetails(categories) {
   const items = Object.keys(CATEGORY_LABELS)
     .filter((key) => categories[key]?.level && categories[key].level !== 'none')
@@ -799,6 +824,7 @@ function renderAnalysis(result) {
     <div class="stamp-grid">${stamps}</div>
     ${renderMentalModels(result.mental_models)}
     ${renderComparableTitles(result.comparable_titles)}
+    ${renderSuggestedTitles(result.suggested_titles)}
     ${renderBuyLinks(currentBook)}
     ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
     ${sources ? `<ul class="sources">${sources}</ul>` : ''}
