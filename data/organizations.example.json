@@ -1,0 +1,19 @@
+[
+  {
+    "id": "demo-school",
+    "slug": "demo-school",
+    "name": "Demo School Library",
+    "shortName": "Demo Library",
+    "tagline": "Book guidance for our school community.",
+    "primaryColor": "#1f7a5c",
+    "primaryDark": "#15513f",
+    "primarySoft": "#dff3ea",
+    "gradient": "linear-gradient(135deg, #15513f 0%, #1f7a5c 55%, #7ed6a7 100%)",
+    "supportEmail": "library@example.org",
+    "inviteCode": "replace-with-private-code",
+    "plan": "paid",
+    "active": true,
+    "hostnames": [],
+    "customDomains": []
+  }
+]

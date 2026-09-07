@@ -88,10 +88,18 @@ start-mac.command       Double-click launcher for Mac testers
 start-windows.bat       Double-click launcher for Windows testers
 public/                 Frontend (vanilla HTML/CSS/JS, no build step)
 data/accounts.json      Registered accounts (created automatically, gitignored)
+data/organizations.json Pilot organisation/brand configs (optional, gitignored)
+data/organizations.example.json Copyable pilot organisation template
 data/accounts/<id>/     Each account's own library, kids, and thresholds (gitignored)
 ```
 
 Each account's library/kids/thresholds are private to that account. The one exception is the book-analysis cache (`data/analysisCache.json`), which is shared across every account on purpose - once anyone has analysed a given book, everyone gets that result instantly and for free.
+
+## White-label / organisation pilots
+
+KinRead can run a co-branded pilot from a single codebase. Copy `data/organizations.example.json` to `data/organizations.json` locally, or add the same JSON to the shared `organizations` state row in Postgres, and send families to `/login?org=<slug>` or `/login?invite=<code>`. New accounts created from that link keep their own private library, kids, thresholds, and notes, but inherit the organisation's brand and paid-access status when configured.
+
+You can also match by host with `hostnames` or `customDomains`, for example `["books.example.org"]`. Keep organisation configs private because invite codes can grant sponsored access.
 
 ## Notes on the categories
 

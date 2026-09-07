@@ -17,6 +17,7 @@ const THRESHOLDS_PATH = path.join(DATA_DIR, 'thresholds.json');
 const ANALYSIS_CACHE_PATH = path.join(DATA_DIR, 'analysisCache.json');
 const LESSON_SEARCH_CACHE_PATH = path.join(DATA_DIR, 'lessonSearchCache.json');
 const ACCOUNTS_PATH = path.join(DATA_DIR, 'accounts.json');
+const ORGANIZATIONS_PATH = path.join(DATA_DIR, 'organizations.json');
 
 // Default "comfortable from this age" settings per category and severity level.
 // These are just a starting point loosely based on common content-rating norms -
@@ -31,6 +32,18 @@ const DEFAULT_THRESHOLDS = {
   self_harm_suicide: { mild: 12, moderate: 14, strong: 16 },
   lgbtq_content: { minor: 0, central: 0 },
   other_themes: { minor: 0, central: 0 },
+};
+
+const DEFAULT_BRAND = {
+  name: 'KinRead',
+  shortName: 'KinRead',
+  tagline: 'Know the book before you say yes.',
+  primaryColor: '#00a99d',
+  primaryDark: '#08756f',
+  primarySoft: '#d7f3ee',
+  gradient: 'linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%)',
+  supportEmail: '',
+  poweredBy: '',
 };
 
 const app = express();
@@ -250,6 +263,74 @@ function isValidEmail(email) {
   return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeSlug(value) {
+  return String(value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function normalizeHostname(value) {
+  return String(value || '').toLowerCase().trim().replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+}
+
+function cleanHexColor(value) {
+  const color = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : '';
+}
+
+function cleanCssGradient(value) {
+  const gradient = String(value || '').trim();
+  return /^linear-gradient\([^<>]+\)$/i.test(gradient) ? gradient : '';
+}
+
+function organizationBrand(organization) {
+  if (!organization) return { ...DEFAULT_BRAND };
+  const primaryColor = cleanHexColor(organization.primaryColor);
+  const primaryDark = cleanHexColor(organization.primaryDark);
+  const primarySoft = cleanHexColor(organization.primarySoft);
+  const gradient = cleanCssGradient(organization.gradient);
+  return {
+    name: String(organization.name || DEFAULT_BRAND.name).trim() || DEFAULT_BRAND.name,
+    shortName: String(organization.shortName || organization.name || DEFAULT_BRAND.shortName).trim() || DEFAULT_BRAND.shortName,
+    tagline: String(organization.tagline || DEFAULT_BRAND.tagline).trim() || DEFAULT_BRAND.tagline,
+    primaryColor: primaryColor || DEFAULT_BRAND.primaryColor,
+    primaryDark: primaryDark || DEFAULT_BRAND.primaryDark,
+    primarySoft: primarySoft || DEFAULT_BRAND.primarySoft,
+    gradient: gradient || DEFAULT_BRAND.gradient,
+    logoUrl: safePublicUrl(organization.logoUrl),
+    supportEmail: isValidEmail(organization.supportEmail) ? organization.supportEmail.trim().toLowerCase() : '',
+    poweredBy: organization.showPoweredBy === false ? '' : 'KinRead',
+    organization: {
+      id: organization.id,
+      slug: organization.slug,
+      name: organization.name,
+    },
+  };
+}
+
+async function resolveOrganization(req) {
+  const organizations = await readOrganizations();
+  const slug = normalizeSlug(req.query?.org || req.query?.organization || req.body?.organizationSlug);
+  const inviteCode = String(req.query?.invite || req.body?.inviteCode || '').trim().toLowerCase();
+  const hostname = normalizeHostname(req.get?.('host'));
+
+  return organizations.find((organization) => {
+    if (!organization || organization.active === false) return false;
+    if (slug && normalizeSlug(organization.slug) === slug) return true;
+    if (inviteCode && String(organization.inviteCode || '').trim().toLowerCase() === inviteCode) return true;
+    const hostnames = [...(organization.hostnames || []), ...(organization.customDomains || [])].map(normalizeHostname);
+    return hostname && hostnames.includes(hostname);
+  }) || null;
+}
+
+async function accountOrganization(account) {
+  if (!account?.organizationId) return null;
+  const organizations = await readOrganizations();
+  return organizations.find((organization) => organization.id === account.organizationId && organization.active !== false) || null;
+}
+
+function hasPaidAccess(account, organization) {
+  return account?.plan === 'paid' || organization?.plan === 'paid';
+}
+
 // Sends via Resend in production. Local development can use the console fallback so the
 // password reset flow remains testable without an email provider. Reset links are never
 // returned from an API response.
@@ -333,6 +414,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
   .brand-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--gradient-brand);
     box-shadow: 0 10px 26px rgba(79,70,229,0.32); display: flex; align-items: center; justify-content: center; margin-bottom: 0.9rem; }
   .brand-mark svg { width: 18px; height: 18px; stroke: #fff; }
+  .brand-logo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
   h1 { margin: 0 0 0.3rem; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.7rem; color: #1b1d2b; letter-spacing: -0.02em; }
   h1 span { background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
   p.sub { margin: 0 0 1.3rem; color: #676c85; font-size: 0.9rem; font-family: 'Public Sans', sans-serif; }
@@ -352,8 +434,8 @@ const AUTH_PAGE_HTML = `<!doctype html>
 </head>
 <body>
   <form class="card" id="auth-form">
-    <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
-    <h1>Kin<span>Read</span></h1>
+    <span class="brand-mark" aria-hidden="true"><img id="brand-logo" class="brand-logo hidden" alt="" /><svg id="brand-default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+    <h1 id="brand-name">Kin<span>Read</span></h1>
     <p class="sub" id="auth-sub">Sign in to your account.</p>
     <input id="email" type="email" placeholder="Email" autocomplete="email" autofocus required />
     <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
@@ -374,13 +456,34 @@ const AUTH_PAGE_HTML = `<!doctype html>
   </form>
   <script>
     let mode = 'login';
+    let activeBrand = { name: 'KinRead', shortName: 'KinRead' };
     const form = document.getElementById('auth-form');
     const sub = document.getElementById('auth-sub');
     const submitBtn = document.getElementById('auth-submit');
     const toggleWrap = document.getElementById('auth-toggle');
+    async function loadBrand() {
+      try {
+        const res = await fetch('/api/brand' + window.location.search);
+        if (!res.ok) return;
+        activeBrand = Object.assign(activeBrand, await res.json());
+        document.title = activeBrand.shortName || activeBrand.name || 'KinRead';
+        document.documentElement.style.setProperty('--primary', activeBrand.primaryColor || '#00a99d');
+        document.documentElement.style.setProperty('--gradient-brand', activeBrand.gradient || 'linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%)');
+        document.getElementById('brand-name').textContent = activeBrand.shortName || activeBrand.name || 'KinRead';
+        const logo = document.getElementById('brand-logo');
+        const icon = document.getElementById('brand-default-icon');
+        if (activeBrand.logoUrl && logo && icon) {
+          logo.src = activeBrand.logoUrl;
+          logo.classList.remove('hidden');
+          icon.classList.add('hidden');
+        }
+        if (mode === 'signup') sub.textContent = 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'KinRead') + ' account.';
+      } catch {}
+    }
+    loadBrand();
     function toggleMode() {
       mode = mode === 'login' ? 'signup' : 'login';
-      sub.textContent = mode === 'login' ? 'Sign in to your account.' : 'Create your free KinRead account.';
+      sub.textContent = mode === 'login' ? 'Sign in to your account.' : 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'KinRead') + ' account.';
       submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
       document.getElementById('legal-consent').style.display = mode === 'signup' ? 'block' : 'none';
       document.getElementById('forgot-toggle').style.display = mode === 'login' ? 'block' : 'none';
@@ -427,7 +530,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
       const errorEl = document.getElementById('error');
       errorEl.textContent = '';
       try {
-        const res = await fetch(mode === 'login' ? '/api/login' : '/api/signup', {
+        const res = await fetch(mode === 'login' ? '/api/login' : '/api/signup' + window.location.search, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -461,11 +564,14 @@ app.post('/api/signup', signupRateLimit, async (req, res) => {
   if (accounts.some((a) => a.email === normalizedEmail)) {
     return res.status(409).json({ error: 'An account with that email already exists. Try signing in instead.' });
   }
+  const organization = await resolveOrganization(req);
   const account = {
     id: randomUUID(),
     email: normalizedEmail,
     passwordHash: hashPassword(password),
     plan: matchesAdminCredentials(normalizedEmail, password) ? 'paid' : 'free',
+    organizationId: organization?.id || null,
+    role: organization ? 'member' : null,
     analysesUsed: 0,
     periodStart: currentPeriodStart(),
     createdAt: new Date().toISOString(),
@@ -738,8 +844,21 @@ app.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${appBaseUrl(req)}/sitemap.xml\n`);
 });
 
+app.get('/api/brand', async (req, res) => {
+  let organization = await resolveOrganization(req);
+  if (!organization) {
+    const accountId = verifySession(parseCookies(req.headers.cookie)[SESSION_COOKIE]);
+    if (accountId) {
+      const accounts = await readAccounts();
+      const account = accounts.find((a) => a.id === accountId);
+      organization = await accountOrganization(account);
+    }
+  }
+  res.json(organizationBrand(organization));
+});
+
 app.use((req, res, next) => {
-  const publicPaths = ['/login', '/api/login', '/api/signup', '/api/forgot-password', '/api/reset-password', '/privacy.html', '/terms.html', '/reset-password.html', '/style.css'];
+  const publicPaths = ['/login', '/api/brand', '/api/login', '/api/signup', '/api/forgot-password', '/api/reset-password', '/privacy.html', '/terms.html', '/reset-password.html', '/style.css'];
   if (publicPaths.includes(req.path)) return next();
   const cookies = parseCookies(req.headers.cookie);
   const accountId = verifySession(cookies[SESSION_COOKIE]);
@@ -757,12 +876,16 @@ app.get('/api/me', async (req, res) => {
   const accounts = await readAccounts();
   const account = accounts.find((a) => a.id === req.accountId);
   if (!account) return res.status(401).json({ error: 'Not authenticated.' });
+  const organization = await accountOrganization(account);
+  const paidAccess = hasPaidAccess(account, organization);
   const analysesUsed = account.periodStart === currentPeriodStart() ? account.analysesUsed : 0;
   res.json({
     email: account.email,
     plan: account.plan,
+    accessPlan: paidAccess ? 'paid' : 'free',
+    organization: organization ? { id: organization.id, slug: organization.slug, name: organization.name, role: account.role || 'member' } : null,
     analysesUsed,
-    analysesLimit: account.plan === 'paid' ? null : FREE_TIER_MONTHLY_LIMIT,
+    analysesLimit: paidAccess ? null : FREE_TIER_MONTHLY_LIMIT,
     quotaResetsOn: currentPeriodEnd(),
     affiliates: AFFILIATES,
   });
@@ -962,6 +1085,8 @@ const readAnalysisCache = () => readStoredJson('analysisCache', ANALYSIS_CACHE_P
 const writeAnalysisCache = (cache) => writeStoredJson('analysisCache', ANALYSIS_CACHE_PATH, cache);
 const readLessonSearchCache = () => readStoredJson('lessonSearchCache', LESSON_SEARCH_CACHE_PATH, {});
 const writeLessonSearchCache = (cache) => writeStoredJson('lessonSearchCache', LESSON_SEARCH_CACHE_PATH, cache);
+const readOrganizations = () => readStoredJson('organizations', ORGANIZATIONS_PATH, []);
+const writeOrganizations = (organizations) => writeStoredJson('organizations', ORGANIZATIONS_PATH, organizations);
 
 // Accounts stay in the shared (non-per-account) store, keyed by email for signup/login lookup.
 const readAccounts = () => readStoredJson('accounts', ACCOUNTS_PATH, []);
@@ -984,12 +1109,14 @@ async function checkAndConsumeAnalysisQuota(accountId) {
   const accounts = await readAccounts();
   const account = accounts.find((a) => a.id === accountId);
   if (!account) return { ok: false, error: 'Account not found.' };
+  const organization = await accountOrganization(account);
+  if (hasPaidAccess(account, organization)) return { ok: true };
   const thisPeriod = currentPeriodStart();
   if (account.periodStart !== thisPeriod) {
     account.periodStart = thisPeriod;
     account.analysesUsed = 0;
   }
-  if (account.plan !== 'paid' && account.analysesUsed >= FREE_TIER_MONTHLY_LIMIT) {
+  if (account.analysesUsed >= FREE_TIER_MONTHLY_LIMIT) {
     await writeAccounts(accounts);
     return {
       ok: false,

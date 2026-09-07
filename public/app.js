@@ -10,9 +10,50 @@ let pendingCoverDetails = null;
 let kidsCache = [];
 let thresholdsCache = {};
 let affiliateConfig = null;
+let activeBrand = { name: 'KinRead', shortName: 'KinRead', tagline: 'Know the book before you say yes.' };
 
+loadBrand();
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
 loadAccount();
+
+// ---------- brand ----------
+async function loadBrand() {
+  try {
+    const res = await fetch(`/api/brand${window.location.search}`);
+    if (!res.ok) return activeBrand;
+    const brand = await res.json();
+    activeBrand = { ...activeBrand, ...brand };
+    applyBrand(activeBrand);
+    return activeBrand;
+  } catch {
+    return activeBrand;
+  }
+}
+
+function applyBrand(brand) {
+  document.title = brand.shortName || brand.name || 'KinRead';
+  document.documentElement.style.setProperty('--primary', brand.primaryColor || '#00a99d');
+  document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#08756f');
+  document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#d7f3ee');
+  document.documentElement.style.setProperty('--gradient-brand', brand.gradient || 'linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%)');
+
+  const nameEl = document.getElementById('brand-name');
+  if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'KinRead';
+  const taglineEl = document.getElementById('brand-tagline');
+  if (taglineEl) taglineEl.textContent = brand.tagline || 'Know the book before you say yes.';
+
+  const logoEl = document.getElementById('brand-logo');
+  const defaultIcon = document.getElementById('brand-default-icon');
+  if (logoEl && defaultIcon && brand.logoUrl) {
+    logoEl.src = brand.logoUrl;
+    logoEl.classList.remove('hidden');
+    defaultIcon.classList.add('hidden');
+  }
+}
+
+function brandName() {
+  return activeBrand.shortName || activeBrand.name || 'KinRead';
+}
 
 // ---------- account ----------
 async function loadAccount() {
@@ -28,6 +69,11 @@ async function loadAccount() {
     show('account-badge');
 
     const billingBtn = document.getElementById('btn-billing');
+    if (account.organization && account.accessPlan === 'paid' && account.plan !== 'paid') {
+      billingBtn.classList.add('hidden');
+      billingBtn.onclick = null;
+      return account;
+    }
     billingBtn.textContent = account.plan === 'paid' ? 'Manage billing' : 'Upgrade';
     billingBtn.classList.remove('hidden');
     billingBtn.onclick = () => {
@@ -63,7 +109,8 @@ function formatResetDate(iso) {
 
 function renderUsageMeter(account) {
   if (!account.analysesLimit) {
-    return '<span class="usage-line">KinRead Family plan &middot; unlimited analyses</span>';
+    const label = account.organization?.name ? `${account.organization.name} access` : `${brandName()} Family plan`;
+    return `<span class="usage-line">${escapeHtml(label)} &middot; unlimited analyses</span>`;
   }
   const limit = account.analysesLimit;
   const used = Math.min(Math.max(account.analysesUsed || 0, 0), limit);
@@ -102,13 +149,13 @@ if (new URLSearchParams(location.search).get('upgraded') === '1') {
   window.addEventListener('DOMContentLoaded', async () => {
     const hint = document.createElement('p');
     hint.className = 'hint centered';
-    hint.textContent = 'Confirming your KinRead Family plan...';
+    hint.textContent = `Confirming your ${brandName()} Family plan...`;
     document.querySelector('main')?.prepend(hint);
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const account = await loadAccount();
-      if (account?.plan === 'paid') {
-        hint.textContent = 'Your KinRead Family plan is active. Thank you!';
+      if (account?.accessPlan === 'paid') {
+        hint.textContent = `Your ${brandName()} Family plan is active. Thank you!`;
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -461,7 +508,7 @@ document.getElementById('form-lesson').addEventListener('submit', async (e) => {
       if (res.status === 402) {
         document.getElementById('lesson-results').innerHTML = `
           <p class="error">${escapeHtml(data.error)}</p>
-          <button id="btn-upgrade-cta-lesson" class="btn btn-primary btn-block">Upgrade to KinRead Family</button>`;
+          <button id="btn-upgrade-cta-lesson" class="btn btn-primary btn-block">Upgrade to ${escapeHtml(brandName())} Family</button>`;
         document.getElementById('btn-upgrade-cta-lesson').addEventListener('click', () => startBillingFlow('checkout'));
         show('lesson-results');
         return;
@@ -604,7 +651,7 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
         document.getElementById('analysis-card').innerHTML = `
           <p class="error">${escapeHtml(data.error)}</p>
           ${resetsOn ? `<p class="muted small">Your free analyses reset on ${escapeHtml(resetsOn)}.</p>` : ''}
-          <button id="btn-upgrade-cta" class="btn btn-primary btn-block">Upgrade to KinRead Family</button>`;
+          <button id="btn-upgrade-cta" class="btn btn-primary btn-block">Upgrade to ${escapeHtml(brandName())} Family</button>`;
         document.getElementById('btn-upgrade-cta').addEventListener('click', () => startBillingFlow('checkout'));
         show('analysis-card');
         return;
@@ -794,7 +841,7 @@ function renderBuyLinks(book) {
     <section class="buy-links">
       <p class="card-label">Where to get it</p>
       <div class="buy-link-row">${items}</div>
-      ${earnsCommission ? '<p class="buy-disclosure">KinRead may earn a small commission from these links, at no extra cost to you.</p>' : ''}
+      ${earnsCommission ? `<p class="buy-disclosure">${escapeHtml(brandName())} may earn a small commission from these links, at no extra cost to you.</p>` : ''}
     </section>`;
 }
 
