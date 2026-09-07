@@ -6,6 +6,7 @@
   "main": "server.js",
   "scripts": {
     "setup": "node setup.js",
+    "sync:organizations": "node scripts/sync-organizations.js",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },

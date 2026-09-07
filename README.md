@@ -101,6 +101,8 @@ KinRead can run a co-branded pilot from a single codebase. Copy `data/organizati
 
 You can also match by host with `hostnames` or `customDomains`, for example `["books.example.org"]`. Keep organisation configs private because invite codes can grant sponsored access.
 
+Run `npm run sync:organizations` after editing `data/organizations.json`. Without `DATABASE_URL`, it validates and formats the local JSON file. With `DATABASE_URL`, it writes the configs to the shared Postgres `organizations` state row used by the deployed app.
+
 ## Notes on the categories
 
 Five categories use a severity scale (none/mild/moderate/strong): sexual content, language/cussing, violence, substance use, and self-harm/suicide themes. LGBTQ+ content gets its own separate field (`lgbtq_content`), apart from a broader "other themes" field (family structure, disability, race/culture, religion, grief, etc.); both reported as neutral, factual information, styled the same understated way regardless of the answer rather than as a "concern" alongside the severity-scored categories. Feel free to adjust the wording in `ANALYSIS_SCHEMA_PROMPT` in `server.js` if you want the categories to work differently.
