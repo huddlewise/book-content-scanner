@@ -28,6 +28,7 @@
         <div id="account-dropdown" class="account-dropdown hidden">
           <p id="account-email" class="account-dropdown-email"></p>
           <div id="account-usage" class="account-dropdown-usage"></div>
+          <button id="btn-claim-account" class="account-dropdown-item hidden">Save my library - create free account</button>
           <button id="btn-billing" class="account-dropdown-item hidden">Upgrade</button>
           <button id="btn-logout" class="account-dropdown-item">Log out</button>
         </div>
@@ -229,6 +230,19 @@
       <input id="input-delete-confirm" autocomplete="off" style="margin-top:0.4rem" />
       <p id="delete-error" class="error hidden"></p>
       <button id="btn-confirm-delete" class="btn btn-block" style="background:var(--stamp-red);color:#fff;margin-top:0.9rem" disabled>Delete my account permanently</button>
+    </div>
+  </div>
+
+  <div id="claim-account-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-close-claim" class="modal-close" aria-label="Close">&times;</button>
+      <p class="card-label">Save your library</p>
+      <h2>Create a free account to keep it.</h2>
+      <p>You're on a guest trial - add an email and password to turn this into a real account. Your library, kids and thresholds carry over automatically.</p>
+      <input id="claim-email" type="email" placeholder="Email" autocomplete="email" style="margin-top:0.6rem" />
+      <input id="claim-password" type="password" placeholder="Password" autocomplete="new-password" style="margin-top:0.6rem" />
+      <p id="claim-error" class="error hidden"></p>
+      <button id="btn-confirm-claim" class="btn btn-primary btn-block" style="margin-top:0.9rem">Create free account</button>
     </div>
   </div>
 

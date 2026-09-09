@@ -62,14 +62,21 @@ async function loadAccount() {
     if (!res.ok) return;
     const account = await res.json();
 
-    document.getElementById('account-trigger').textContent = account.email[0]?.toUpperCase() || '?';
-    document.getElementById('account-email').textContent = account.email;
+    document.getElementById('account-trigger').textContent = account.isGuest ? 'G' : (account.email[0]?.toUpperCase() || '?');
+    document.getElementById('account-email').textContent = account.isGuest ? 'Guest trial' : account.email;
     document.getElementById('account-usage').innerHTML = renderUsageMeter(account);
     affiliateConfig = account.affiliates || null;
     show('account-badge');
 
+    const claimBtn = document.getElementById('btn-claim-account');
+    claimBtn.classList.toggle('hidden', !account.isGuest);
+    claimBtn.onclick = account.isGuest ? () => {
+      document.getElementById('account-dropdown').classList.add('hidden');
+      show('claim-account-modal');
+    } : null;
+
     const billingBtn = document.getElementById('btn-billing');
-    if (account.organization && account.accessPlan === 'paid' && account.plan !== 'paid') {
+    if (account.isGuest || (account.organization && account.accessPlan === 'paid' && account.plan !== 'paid')) {
       billingBtn.classList.add('hidden');
       billingBtn.onclick = null;
       return account;
@@ -117,6 +124,12 @@ function renderUsageMeter(account) {
   const remaining = limit - used;
   const state = remaining === 0 ? 'empty' : remaining <= 1 ? 'low' : 'ok';
   const resetsOn = account.quotaResetsOn ? formatResetDate(account.quotaResetsOn) : '';
+  if (account.isGuest) {
+    return `
+      <span class="usage-line"><strong>${remaining}</strong> of ${limit} guest analyses left</span>
+      <span class="usage-bar"><span class="usage-bar-fill usage-${state}" style="width:${Math.round((used / limit) * 100)}%"></span></span>
+      <span class="usage-reset">Create a free account for more, and to keep this library.</span>`;
+  }
   return `
     <span class="usage-line"><strong>${remaining}</strong> of ${limit} free analyses left</span>
     <span class="usage-bar"><span class="usage-bar-fill usage-${state}" style="width:${Math.round((used / limit) * 100)}%"></span></span>
@@ -141,6 +154,35 @@ document.getElementById('btn-close-upgrade').addEventListener('click', () => hid
 document.getElementById('btn-close-upgrade-2').addEventListener('click', () => hide('upgrade-modal'));
 document.getElementById('upgrade-modal').addEventListener('click', (e) => {
   if (e.target.id === 'upgrade-modal') hide('upgrade-modal');
+});
+
+document.getElementById('btn-close-claim').addEventListener('click', () => hide('claim-account-modal'));
+document.getElementById('claim-account-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'claim-account-modal') hide('claim-account-modal');
+});
+document.getElementById('btn-confirm-claim').addEventListener('click', async () => {
+  const email = document.getElementById('claim-email').value.trim();
+  const password = document.getElementById('claim-password').value;
+  const errorEl = document.getElementById('claim-error');
+  errorEl.classList.add('hidden');
+  try {
+    const res = await fetch('/api/claim-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Something went wrong.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    hide('claim-account-modal');
+    loadAccount();
+  } catch {
+    errorEl.textContent = 'Could not reach the server. Try again.';
+    errorEl.classList.remove('hidden');
+  }
 });
 
 // Coming back from a successful Stripe Checkout redirects here with ?upgraded=1

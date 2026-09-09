@@ -143,6 +143,7 @@ const coverIdRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 40 });
 // than API cost.
 const loginRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
 const signupRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 10 });
+const guestRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 20 });
 const forgotPasswordRateLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 5 });
 
 function upstreamErrorMessage(err, fallback) {
@@ -194,6 +195,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
 const SESSION_COOKIE = 'kinread_session';
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const FREE_TIER_MONTHLY_LIMIT = 5;
+// Guests get a smaller cap than real free accounts (no email verification, so cheap to abuse).
+const GUEST_ANALYSIS_LIMIT = 3;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase() || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
@@ -444,6 +447,8 @@ const AUTH_PAGE_HTML = `<!doctype html>
     <p class="toggle" id="forgot-toggle"><button type="button" id="forgot-btn">Forgot password?</button></p>
     <p class="toggle" id="auth-toggle">New here? <button type="button" id="toggle-btn">Create an account</button></p>
     <p class="legal-consent hidden" id="legal-consent">By creating an account, you agree to our <a href="/terms.html" target="_blank">Terms</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a>.</p>
+    <p class="toggle"><button type="button" id="guest-btn">Just try it - no account needed</button></p>
+    <p id="guest-error" class="sub" style="margin:0.4rem 0 0"></p>
   </form>
 
   <form class="card hidden" id="forgot-form">
@@ -487,12 +492,10 @@ const AUTH_PAGE_HTML = `<!doctype html>
       submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
       document.getElementById('legal-consent').style.display = mode === 'signup' ? 'block' : 'none';
       document.getElementById('forgot-toggle').style.display = mode === 'login' ? 'block' : 'none';
+      const toggleBtn = document.getElementById('toggle-btn');
       toggleWrap.textContent = mode === 'login' ? 'New here? ' : 'Already have an account? ';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = mode === 'login' ? 'Create an account' : 'Sign in';
-      btn.addEventListener('click', toggleMode);
-      toggleWrap.appendChild(btn);
+      toggleWrap.appendChild(toggleBtn);
+      toggleBtn.textContent = mode === 'login' ? 'Create an account' : 'Sign in';
     }
     document.getElementById('toggle-btn').addEventListener('click', toggleMode);
     document.getElementById('forgot-btn').addEventListener('click', () => {
@@ -502,6 +505,21 @@ const AUTH_PAGE_HTML = `<!doctype html>
     document.getElementById('forgot-back-btn').addEventListener('click', () => {
       document.getElementById('forgot-form').classList.add('hidden');
       form.classList.remove('hidden');
+    });
+    document.getElementById('guest-btn').addEventListener('click', async () => {
+      const guestErrorEl = document.getElementById('guest-error');
+      guestErrorEl.textContent = 'Setting up your trial...';
+      try {
+        const res = await fetch('/api/guest' + window.location.search, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          guestErrorEl.textContent = data.error || 'Could not start a guest session. Try again.';
+          return;
+        }
+        window.location.href = '/';
+      } catch {
+        guestErrorEl.textContent = 'Could not reach the server. Try again.';
+      }
     });
     document.getElementById('forgot-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -618,6 +636,30 @@ app.post('/api/login', loginRateLimit, async (req, res) => {
 app.post('/api/logout', (_req, res) => {
   res.clearCookie(SESSION_COOKIE);
   res.json({ ok: true });
+});
+
+// Instant access with no email/password - the whole point is removing the signup barrier for
+// people just trying the app out. Creates a real account under the hood (so quota/library work
+// normally) flagged isGuest so it gets a smaller analysis cap and can be "claimed" later.
+app.post('/api/guest', guestRateLimit, async (req, res) => {
+  const organization = await resolveOrganization(req);
+  const account = {
+    id: randomUUID(),
+    email: `guest-${randomUUID()}@guest.local`,
+    passwordHash: null,
+    isGuest: true,
+    plan: 'free',
+    organizationId: organization?.id || null,
+    role: organization ? 'member' : null,
+    analysesUsed: 0,
+    periodStart: currentPeriodStart(),
+    createdAt: new Date().toISOString(),
+  };
+  const accounts = await readAccounts();
+  accounts.push(account);
+  await writeAccounts(accounts);
+  startSession(res, account.id);
+  res.json({ ok: true, isGuest: true });
 });
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -858,7 +900,7 @@ app.get('/api/brand', async (req, res) => {
 });
 
 app.use((req, res, next) => {
-  const publicPaths = ['/login', '/api/brand', '/api/login', '/api/signup', '/api/forgot-password', '/api/reset-password', '/privacy.html', '/terms.html', '/reset-password.html', '/style.css'];
+  const publicPaths = ['/login', '/api/brand', '/api/login', '/api/signup', '/api/guest', '/api/forgot-password', '/api/reset-password', '/privacy.html', '/terms.html', '/reset-password.html', '/style.css'];
   if (publicPaths.includes(req.path)) return next();
   const cookies = parseCookies(req.headers.cookie);
   const accountId = verifySession(cookies[SESSION_COOKIE]);
@@ -878,17 +920,40 @@ app.get('/api/me', async (req, res) => {
   if (!account) return res.status(401).json({ error: 'Not authenticated.' });
   const organization = await accountOrganization(account);
   const paidAccess = hasPaidAccess(account, organization);
-  const analysesUsed = account.periodStart === currentPeriodStart() ? account.analysesUsed : 0;
+  const analysesUsed = account.isGuest || account.periodStart === currentPeriodStart() ? account.analysesUsed : 0;
   res.json({
     email: account.email,
+    isGuest: Boolean(account.isGuest),
     plan: account.plan,
     accessPlan: paidAccess ? 'paid' : 'free',
     organization: organization ? { id: organization.id, slug: organization.slug, name: organization.name, role: account.role || 'member' } : null,
     analysesUsed,
-    analysesLimit: paidAccess ? null : FREE_TIER_MONTHLY_LIMIT,
-    quotaResetsOn: currentPeriodEnd(),
+    analysesLimit: paidAccess ? null : (account.isGuest ? GUEST_ANALYSIS_LIMIT : FREE_TIER_MONTHLY_LIMIT),
+    quotaResetsOn: account.isGuest ? null : currentPeriodEnd(),
     affiliates: AFFILIATES,
   });
+});
+
+// Lets a guest turn their throwaway account into a real one without losing their in-progress
+// library/kids/thresholds - just attaches an email+password to the same account record.
+app.post('/api/claim-account', signupRateLimit, async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  if (typeof password !== 'string' || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const accounts = await readAccounts();
+  const account = accounts.find((a) => a.id === req.accountId);
+  if (!account || !account.isGuest) return res.status(400).json({ error: 'This account cannot be claimed.' });
+  if (accounts.some((a) => a.id !== account.id && a.email === normalizedEmail)) {
+    return res.status(409).json({ error: 'An account with that email already exists. Try signing in instead.' });
+  }
+  account.email = normalizedEmail;
+  account.passwordHash = hashPassword(password);
+  delete account.isGuest;
+  await writeAccounts(accounts);
+  res.json({ ok: true, email: account.email });
 });
 
 // ---------- billing (Stripe Checkout + customer portal) ----------
@@ -1105,12 +1170,25 @@ function currentPeriodEnd() {
 // Resets the monthly counter if we've rolled into a new month, then enforces the free-tier
 // cap (paid accounts are unlimited). Called only on a cache miss, right before paying for a
 // fresh Claude analysis - cached results never count against a customer's quota.
+// Guests get a LIFETIME cap, not a monthly one - there's no email tying them to a real person,
+// so a monthly reset would let anyone get unlimited free analyses forever just by waiting.
 async function checkAndConsumeAnalysisQuota(accountId) {
   const accounts = await readAccounts();
   const account = accounts.find((a) => a.id === accountId);
   if (!account) return { ok: false, error: 'Account not found.' };
   const organization = await accountOrganization(account);
   if (hasPaidAccess(account, organization)) return { ok: true };
+  if (account.isGuest) {
+    if (account.analysesUsed >= GUEST_ANALYSIS_LIMIT) {
+      return {
+        ok: false,
+        error: `You've used all ${GUEST_ANALYSIS_LIMIT} guest analyses. Create a free account to keep going and save your library.`,
+      };
+    }
+    account.analysesUsed += 1;
+    await writeAccounts(accounts);
+    return { ok: true };
+  }
   const thisPeriod = currentPeriodStart();
   if (account.periodStart !== thisPeriod) {
     account.periodStart = thisPeriod;
