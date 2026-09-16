@@ -1219,6 +1219,69 @@ function analysisCacheKey({ isbn, title, authors }) {
 
 // ---------- book lookup (Google Books API) ----------
 
+function normalizeBookTitle(value) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function rankBooks(items, query) {
+  if (items.length === 1 || !query) return items;
+  const wantedTitle = normalizeBookTitle(query);
+  const wantedWords = new Set(wantedTitle.split(' ').filter(Boolean));
+
+  return items
+    .map((item, index) => {
+      const title = normalizeBookTitle(item.volumeInfo?.title);
+      const titleWords = new Set(title.split(' ').filter(Boolean));
+      const matchingWords = [...wantedWords].filter((word) => titleWords.has(word)).length;
+      const exactTitle = title === wantedTitle;
+      const startsWithQuery = title.startsWith(wantedTitle);
+      const lengthPenalty = Math.abs(titleWords.size - wantedWords.size);
+      const score = (exactTitle ? 10000 : 0)
+        + (startsWithQuery ? 1000 : 0)
+        + matchingWords * 100
+        - lengthPenalty * 10
+        - index;
+      return { item, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ item }) => item);
+}
+
+function chooseBestBook(items, query) {
+  return rankBooks(items, query)[0];
+}
+
+async function refineTitleSearch(items, query, apiKey) {
+  const wantedTitle = normalizeBookTitle(query);
+  const rankedItems = rankBooks(items, query);
+  const selected = rankedItems[0];
+  if (normalizeBookTitle(selected.volumeInfo?.title) === wantedTitle) return rankedItems;
+
+  try {
+    const openLibraryUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=5`;
+    const openLibraryResponse = await fetch(openLibraryUrl, { signal: AbortSignal.timeout(1500) });
+    if (!openLibraryResponse.ok) return rankedItems;
+    const openLibraryData = await openLibraryResponse.json();
+    const exactMatch = (openLibraryData.docs || []).find((book) => normalizeBookTitle(book.title) === wantedTitle);
+    const author = exactMatch?.author_name?.[0];
+    if (!author) return rankedItems;
+
+    let refinedUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(`${query} ${author}`)}&maxResults=10`;
+    if (apiKey) refinedUrl += `&key=${apiKey}`;
+    const refinedResponse = await fetch(refinedUrl, { signal: AbortSignal.timeout(1500) });
+    if (!refinedResponse.ok) return rankedItems;
+    const refinedData = await refinedResponse.json();
+    return refinedData.items?.length ? rankBooks(refinedData.items, query) : rankedItems;
+  } catch {
+    return rankedItems;
+  }
+}
+
 app.post('/api/lookup', async (req, res) => {
   const { isbn, q } = req.body;
   let url;
@@ -1228,7 +1291,7 @@ app.post('/api/lookup', async (req, res) => {
     cleanIsbn = isbn.replace(/-/g, '');
     url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`;
   } else if (q && q.trim().length > 1) {
-    url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q.trim())}&maxResults=1`;
+    url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q.trim())}&maxResults=10`;
   } else {
     return res.status(400).json({ error: 'Provide either a valid ISBN (9-13 digits) or a title to search for.' });
   }
@@ -1247,8 +1310,10 @@ app.post('/api/lookup', async (req, res) => {
       return res.status(404).json({ error: 'No matching book found. Try a different search or check the spelling.' });
     }
 
-    const info = data.items[0].volumeInfo;
-    res.json({
+    const matchedItems = cleanIsbn
+      ? [data.items[0]]
+      : await refineTitleSearch(data.items, q.trim(), process.env.GOOGLE_BOOKS_API_KEY);
+    const books = matchedItems.slice(0, 8).map(({ volumeInfo: info }) => ({
       isbn: cleanIsbn || info.industryIdentifiers?.find((i) => i.type.startsWith('ISBN'))?.identifier || '',
       title: info.title || 'Unknown title',
       subtitle: info.subtitle || '',
@@ -1258,7 +1323,8 @@ app.post('/api/lookup', async (req, res) => {
       description: info.description || '',
       thumbnail: info.imageLinks?.thumbnail?.replace('http://', 'https://') || '',
       categories: info.categories || [],
-    });
+    }));
+    res.json(cleanIsbn ? books[0] : { books });
   } catch (err) {
     console.error('Lookup error:', err);
     res.status(502).json({ error: 'Could not reach the book lookup service. Check your connection and try again.' });
@@ -1447,8 +1513,8 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-5',
-      max_tokens: 8000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+      max_tokens: 5000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       messages: [{ role: 'user', content: prompt }],
     });
 

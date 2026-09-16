@@ -1,6 +1,7 @@
 // ---------- state ----------
 let currentBook = null;
 let currentAnalysis = null;
+let lookupCandidates = [];
 let codeReader = null;
 let cameraActive = false;
 let cameraMode = null; // 'barcode' | 'photo'
@@ -536,6 +537,7 @@ document.getElementById('form-lesson').addEventListener('submit', async (e) => {
 
   hide('lesson-results');
   hide('book-card');
+  hide('book-results');
   hide('analysis-card');
   show('lesson-loading');
 
@@ -612,6 +614,7 @@ async function lookupBook(payload) {
   const errorEl = document.getElementById('lookup-error');
   errorEl.classList.add('hidden');
   hide('book-card');
+  hide('book-results');
   hide('analysis-card');
   hide('analysis-loading');
 
@@ -624,8 +627,13 @@ async function lookupBook(payload) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lookup failed');
 
-    currentBook = data;
-    renderBookCard(data);
+    if (Array.isArray(data.books)) {
+      lookupCandidates = data.books;
+      renderLookupResults(data.books, payload.q || '');
+    } else {
+      currentBook = data;
+      renderBookCard(data);
+    }
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
@@ -633,6 +641,8 @@ async function lookupBook(payload) {
 }
 
 function renderBookCard(book) {
+  if (!book) return;
+  hide('book-results');
   document.getElementById('book-thumb').src = book.thumbnail || '';
   document.getElementById('book-thumb').style.visibility = book.thumbnail ? 'visible' : 'hidden';
   document.getElementById('book-title').textContent = book.title + (book.subtitle ? `: ${book.subtitle}` : '');
@@ -640,6 +650,37 @@ function renderBookCard(book) {
   const metaParts = [book.publisher, book.publishedDate].filter(Boolean);
   document.getElementById('book-meta').textContent = metaParts.join(' · ');
   show('book-card');
+}
+
+function renderLookupResults(books, query) {
+  const container = document.getElementById('book-results');
+  if (!books.length) {
+    container.innerHTML = `<p class="hint">No matching books found for "${escapeHtml(query)}".</p>`;
+    show('book-results');
+    return;
+  }
+  container.innerHTML = `
+    <p class="card-label">Choose a book to analyse</p>
+    <div class="book-result-list">
+      ${books.map((book, index) => `
+        <button class="book-result" type="button" data-book-index="${index}">
+          ${book.thumbnail ? `<img class="book-result-thumb" src="${escapeHtml(book.thumbnail)}" alt="" />` : '<span class="book-result-thumb book-result-placeholder" aria-hidden="true"></span>'}
+          <span class="book-result-copy">
+            <strong>${escapeHtml(book.title)}${book.subtitle ? `: ${escapeHtml(book.subtitle)}` : ''}</strong>
+            <span>${escapeHtml(book.authors?.join(', ') || 'Author unknown')}</span>
+            <small>${escapeHtml([book.publisher, book.publishedDate].filter(Boolean).join(' · '))}</small>
+          </span>
+        </button>
+      `).join('')}
+    </div>`;
+  container.querySelectorAll('.book-result').forEach((button) => {
+    button.addEventListener('click', () => {
+      currentBook = books[Number(button.dataset.bookIndex)];
+      renderBookCard(currentBook);
+      document.getElementById('book-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+  show('book-results');
 }
 
 // ---------- analysis ----------
@@ -918,17 +959,23 @@ function renderAnalysis(result) {
   card.innerHTML = `
     <p class="card-label">Content summary</p>
     <div class="info-chip-row">${chips}</div>
+    <section class="analysis-at-a-glance">
+      <p class="analysis-section-label">At a glance</p>
+      <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
+    </section>
     ${renderKidVerdicts(cats)}
-    ${renderContentAlert(cats)}
-    ${renderDiscussionPoints(result.discussion_points)}
-    <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
-    <div class="stamp-grid">${stamps}</div>
-    ${renderMentalModels(result.mental_models)}
-    ${renderComparableTitles(result.comparable_titles)}
-    ${renderSuggestedTitles(result.suggested_titles)}
-    ${renderBuyLinks(currentBook)}
-    ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
-    ${sources ? `<ul class="sources">${sources}</ul>` : ''}
+    <details class="analysis-deep-dive">
+      <summary>Deep dive <span>Content details, discussion points, and sources</span></summary>
+      ${renderContentAlert(cats)}
+      ${renderDiscussionPoints(result.discussion_points)}
+      <div class="stamp-grid">${stamps}</div>
+      ${renderMentalModels(result.mental_models)}
+      ${renderComparableTitles(result.comparable_titles)}
+      ${renderSuggestedTitles(result.suggested_titles)}
+      ${renderBuyLinks(currentBook)}
+      ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
+      ${sources ? `<ul class="sources">${sources}</ul>` : ''}
+    </details>
     ${renderPublicGuideLink(currentBook)}
     <label for="notes-field">Your notes (optional)</label>
     <textarea id="notes-field" class="notes-field" placeholder="Anything you want to remember about this one..."></textarea>
