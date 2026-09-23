@@ -1438,6 +1438,20 @@ input:focus, button:focus-visible, textarea:focus {
 
 /* ---------- responsive ---------- */
 @media (min-width: 720px) {
+  .app {
+    max-width: 960px;
+    padding: 0 2rem 4rem;
+  }
+
+  .scan-intro {
+    max-width: 38rem;
+    padding-top: 2.5rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
   .app-header {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -1456,6 +1470,34 @@ input:focus, button:focus-visible, textarea:focus {
   }
   .tab { flex-direction: row; font-size: 0.92rem; }
   .tab-icon { display: none; }
+}
+
+@media (min-width: 1024px) {
+  .app {
+    max-width: 1200px;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+
+  #view-family {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  #view-family .card {
+    margin-top: 1.25rem;
+  }
+
+  #view-family .card:nth-child(2) {
+    grid-column: 2;
+    grid-row: span 2;
+  }
+
+  #view-family .card:nth-child(3) {
+    grid-column: 1;
+  }
 }
 
 @media (max-width: 719px) {
