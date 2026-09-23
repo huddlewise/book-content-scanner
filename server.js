@@ -1228,22 +1228,32 @@ function normalizeBookTitle(value) {
     .trim();
 }
 
-function rankBooks(items, query) {
+function rankBooks(items, query, authorHint = '') {
   if (items.length === 1 || !query) return items;
   const wantedTitle = normalizeBookTitle(query);
   const wantedWords = new Set(wantedTitle.split(' ').filter(Boolean));
+  const wantedAuthor = normalizeBookTitle(authorHint);
 
   return items
     .map((item, index) => {
       const title = normalizeBookTitle(item.volumeInfo?.title);
       const titleWords = new Set(title.split(' ').filter(Boolean));
-      const matchingWords = [...wantedWords].filter((word) => titleWords.has(word)).length;
+      // Only count how many of the item's OWN title words are actually wanted - counting raw
+      // overlap let long tie-in titles (e.g. "...Official Guide to the Movie" which happens to
+      // repeat every query word plus the author's name) out-score the real, shorter book.
+      const matchingWords = [...titleWords].filter((word) => wantedWords.has(word)).length;
       const exactTitle = title === wantedTitle;
       const startsWithQuery = title.startsWith(wantedTitle);
+      const precision = titleWords.size ? matchingWords / titleWords.size : 0;
+      const recall = wantedWords.size ? matchingWords / wantedWords.size : 0;
       const lengthPenalty = Math.abs(titleWords.size - wantedWords.size);
+      const authors = (item.volumeInfo?.authors || []).map(normalizeBookTitle);
+      const authorMatches = wantedAuthor && authors.some((a) => a.includes(wantedAuthor) || wantedAuthor.includes(a));
       const score = (exactTitle ? 10000 : 0)
         + (startsWithQuery ? 1000 : 0)
-        + matchingWords * 100
+        + precision * 600
+        + recall * 400
+        + (authorMatches ? 800 : 0)
         - lengthPenalty * 10
         - index;
       return { item, score };
@@ -1252,15 +1262,16 @@ function rankBooks(items, query) {
     .map(({ item }) => item);
 }
 
-function chooseBestBook(items, query) {
-  return rankBooks(items, query)[0];
+function chooseBestBook(items, query, authorHint = '') {
+  return rankBooks(items, query, authorHint)[0];
 }
 
-async function refineTitleSearch(items, query, apiKey) {
+async function refineTitleSearch(items, query, apiKey, authorHint = '') {
   const wantedTitle = normalizeBookTitle(query);
-  const rankedItems = rankBooks(items, query);
+  const rankedItems = rankBooks(items, query, authorHint);
   const selected = rankedItems[0];
   if (normalizeBookTitle(selected.volumeInfo?.title) === wantedTitle) return rankedItems;
+  if (authorHint) return rankedItems; // we already know the author, no need to guess one via OpenLibrary
 
   try {
     const openLibraryUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=5`;
@@ -1276,14 +1287,15 @@ async function refineTitleSearch(items, query, apiKey) {
     const refinedResponse = await fetch(refinedUrl, { signal: AbortSignal.timeout(1500) });
     if (!refinedResponse.ok) return rankedItems;
     const refinedData = await refinedResponse.json();
-    return refinedData.items?.length ? rankBooks(refinedData.items, query) : rankedItems;
+    return refinedData.items?.length ? rankBooks(refinedData.items, query, author) : rankedItems;
   } catch {
     return rankedItems;
   }
 }
 
 app.post('/api/lookup', async (req, res) => {
-  const { isbn, q } = req.body;
+  const { isbn, q, author } = req.body;
+  const authorHint = typeof author === 'string' ? author.trim() : '';
   let url;
   let cleanIsbn = '';
 
@@ -1291,7 +1303,10 @@ app.post('/api/lookup', async (req, res) => {
     cleanIsbn = isbn.replace(/-/g, '');
     url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`;
   } else if (q && q.trim().length > 1) {
-    url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q.trim())}&maxResults=10`;
+    // When we already know the author (e.g. from a theme-search suggestion), search more
+    // precisely so a tie-in edition doesn't outrank the real book by keyword volume alone.
+    const searchTerms = authorHint ? `intitle:${q.trim()} inauthor:${authorHint}` : q.trim();
+    url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchTerms)}&maxResults=10`;
   } else {
     return res.status(400).json({ error: 'Provide either a valid ISBN (9-13 digits) or a title to search for.' });
   }
@@ -1304,7 +1319,16 @@ app.post('/api/lookup', async (req, res) => {
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Google Books responded ${response.status}`);
-    const data = await response.json();
+    let data = await response.json();
+
+    // The narrower intitle:/inauthor: search can miss real matches (spelling drift, etc.) -
+    // fall back to a plain free-text search rather than reporting no match at all.
+    if (authorHint && (!data.items || data.items.length === 0)) {
+      let fallbackUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(`${q.trim()} ${authorHint}`)}&maxResults=10`;
+      if (process.env.GOOGLE_BOOKS_API_KEY) fallbackUrl += `&key=${process.env.GOOGLE_BOOKS_API_KEY}`;
+      const fallbackResponse = await fetch(fallbackUrl);
+      if (fallbackResponse.ok) data = await fallbackResponse.json();
+    }
 
     if (!data.items || data.items.length === 0) {
       return res.status(404).json({ error: 'No matching book found. Try a different search or check the spelling.' });
@@ -1312,24 +1336,61 @@ app.post('/api/lookup', async (req, res) => {
 
     const matchedItems = cleanIsbn
       ? [data.items[0]]
-      : await refineTitleSearch(data.items, q.trim(), process.env.GOOGLE_BOOKS_API_KEY);
-    const books = matchedItems.slice(0, 8).map(({ volumeInfo: info }) => ({
-      isbn: cleanIsbn || info.industryIdentifiers?.find((i) => i.type.startsWith('ISBN'))?.identifier || '',
-      title: info.title || 'Unknown title',
-      subtitle: info.subtitle || '',
-      authors: info.authors || [],
-      publisher: info.publisher || '',
-      publishedDate: info.publishedDate || '',
-      description: info.description || '',
-      thumbnail: info.imageLinks?.thumbnail?.replace('http://', 'https://') || '',
-      categories: info.categories || [],
-    }));
+      : await refineTitleSearch(data.items, q.trim(), process.env.GOOGLE_BOOKS_API_KEY, authorHint);
+    const analysisCache = await readAnalysisCache();
+    const books = matchedItems.slice(0, 8).map(({ volumeInfo: info }) => {
+      const isbn = cleanIsbn || info.industryIdentifiers?.find((i) => i.type.startsWith('ISBN'))?.identifier || '';
+      const authors = info.authors || [];
+      // Named distinctly from Google's own genre `categories` field below - this is our
+      // content-safety analysis, reused from the shared cache so a family's thresholds can be
+      // applied to it client-side without paying for a fresh Claude analysis just to browse.
+      const cachedEntry = analysisCache[analysisCacheKey({ isbn, title: info.title, authors })];
+      return {
+        isbn,
+        title: info.title || 'Unknown title',
+        subtitle: info.subtitle || '',
+        authors,
+        publisher: info.publisher || '',
+        publishedDate: info.publishedDate || '',
+        description: info.description || '',
+        thumbnail: info.imageLinks?.thumbnail?.replace('http://', 'https://') || '',
+        categories: info.categories || [],
+        averageRating: typeof info.averageRating === 'number' ? info.averageRating : null,
+        ratingsCount: typeof info.ratingsCount === 'number' ? info.ratingsCount : 0,
+        analysisCategories: cachedEntry?.categories || null,
+      };
+    });
     res.json(cleanIsbn ? books[0] : { books });
   } catch (err) {
     console.error('Lookup error:', err);
     res.status(502).json({ error: 'Could not reach the book lookup service. Check your connection and try again.' });
   }
 });
+
+// Best-effort Google Books lookup used to attach a rating/cover to a title+author suggestion
+// (e.g. from the Claude-generated theme search) - never throws, just returns null on any failure.
+async function findGoogleBooksMatch(title, author) {
+  if (!title) return null;
+  try {
+    const q = `intitle:${title}${author ? ` inauthor:${author}` : ''}`;
+    let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1`;
+    if (process.env.GOOGLE_BOOKS_API_KEY) url += `&key=${process.env.GOOGLE_BOOKS_API_KEY}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(2500) });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const info = data.items?.[0]?.volumeInfo;
+    if (!info) return null;
+    const isbn = info.industryIdentifiers?.find((i) => i.type.startsWith('ISBN'))?.identifier || '';
+    return {
+      isbn,
+      thumbnail: info.imageLinks?.thumbnail?.replace('http://', 'https://') || '',
+      averageRating: typeof info.averageRating === 'number' ? info.averageRating : null,
+      ratingsCount: typeof info.ratingsCount === 'number' ? info.ratingsCount : 0,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // ---------- content analysis (Claude + web search) ----------
 
@@ -1618,6 +1679,17 @@ Respond with ONLY this JSON, no other text: { "books": [ { "title": "...", "auth
     }
 
     const result = stripCitationArtifacts(parsed);
+    // Attach a rating/cover to each suggestion so the list is easier to scan, best-effort only.
+    const analysisCache = await readAnalysisCache();
+    result.books = await Promise.all(
+      (result.books || []).map(async (book) => {
+        const match = await findGoogleBooksMatch(book.title, book.author);
+        const cachedEntry = analysisCache[analysisCacheKey({
+          isbn: match?.isbn, title: book.title, authors: book.author ? [book.author] : [],
+        })];
+        return { ...book, ...match, analysisCategories: cachedEntry?.categories || null };
+      }),
+    );
     cache[cacheKey] = result;
     await writeLessonSearchCache(cache);
     res.json({ ...result, cached: false });

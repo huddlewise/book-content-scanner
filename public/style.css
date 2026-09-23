@@ -35,6 +35,10 @@
 
 * { box-sizing: border-box; }
 
+/* Scales every rem-based size in the app up a notch (browser default is 16px) - the
+   smallest labels/hints were sitting well under 12px, which read as cramped/hard to read. */
+html { font-size: 106.25%; }
+
 body {
   margin: 0;
   background:
@@ -44,6 +48,7 @@ body {
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-body);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -576,6 +581,7 @@ input:focus, button:focus-visible, textarea:focus {
 .book-result-copy strong { font-family: var(--font-display); font-size: 0.95rem; }
 .book-result-copy span, .book-result-copy small { color: var(--ink-muted); font-size: 0.78rem; }
 .book-result-copy strong, .book-result-copy span, .book-result-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-result-copy .star-rating, .book-result-copy .star-rating span { overflow: visible; white-space: nowrap; }
 
 /* ---------- loading ---------- */
 .loading-text {
@@ -854,18 +860,61 @@ input:focus, button:focus-visible, textarea:focus {
   justify-content: center;
 }
 .comparable-icon svg { width: 15px; height: 15px; }
+.comparable-thumb {
+  width: 28px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
 .comparable-title-name {
   font-family: var(--font-display);
   font-size: 0.92rem;
   font-weight: 600;
   margin: 0;
 }
+.comparable-rating { margin: 0.2rem 0 0; }
 .comparable-title-why {
   font-size: 0.82rem;
   color: var(--ink-muted);
   line-height: 1.45;
   margin: 0.2rem 0 0;
 }
+
+.star-rating {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+}
+.star-rating-stars {
+  color: #f5a623;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+}
+.star-rating-value { color: var(--ink-muted); }
+.rating-signal {
+  align-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rating-signal-green { background: #22c55e; }
+.rating-signal-amber { background: #f5a623; }
+.rating-signal-red { background: #ef4444; }
+.rating-signal-gray { background: #cbd5e1; }
+.rating-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+  margin: -0.3rem 0 0.65rem;
+}
+.rating-legend-item { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
 
 /* ---------- public book guide ---------- */
 .public-book-page {
@@ -1503,3 +1552,30 @@ input:focus, button:focus-visible, textarea:focus {
   padding: 0.2rem;
 }
 .modal-close:hover { color: var(--ink); }
+
+/* ---------- summary popup modal ---------- */
+.summary-modal-card {
+  width: min(92vw, 30rem);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.summary-modal-book {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+.summary-modal-book .book-thumb {
+  width: 52px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+  flex-shrink: 0;
+}
+.summary-modal-book h2 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  margin: 0;
+  line-height: 1.3;
+}

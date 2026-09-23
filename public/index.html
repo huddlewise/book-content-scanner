@@ -248,6 +248,23 @@
     </div>
   </div>
 
+  <div id="summary-modal" class="modal-overlay hidden">
+    <div class="modal-card summary-modal-card">
+      <button id="btn-close-summary" class="modal-close" aria-label="Close">&times;</button>
+      <div id="summary-modal-body"></div>
+      <button id="btn-summary-see-full" class="btn btn-primary btn-block" style="margin-top:0.9rem">See full details</button>
+    </div>
+  </div>
+
+  <div id="book-found-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-close-book-found" class="modal-close" aria-label="Close">&times;</button>
+      <p class="card-label">Found it</p>
+      <div id="book-found-modal-body" class="summary-modal-book"></div>
+      <button id="btn-analyze-modal" class="btn btn-primary btn-block" style="margin-top:0.9rem">Analyse content</button>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
   <script src="app.js?v=multi-book-search-2"></script>
 </body>

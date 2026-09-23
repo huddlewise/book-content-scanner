@@ -161,6 +161,15 @@ document.getElementById('btn-close-claim').addEventListener('click', () => hide(
 document.getElementById('claim-account-modal').addEventListener('click', (e) => {
   if (e.target.id === 'claim-account-modal') hide('claim-account-modal');
 });
+document.getElementById('btn-close-summary').addEventListener('click', () => hide('summary-modal'));
+document.getElementById('summary-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'summary-modal') hide('summary-modal');
+});
+document.getElementById('btn-summary-see-full').addEventListener('click', () => {
+  hide('summary-modal');
+  document.getElementById('analysis-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
 document.getElementById('btn-confirm-claim').addEventListener('click', async () => {
   const email = document.getElementById('claim-email').value.trim();
   const password = document.getElementById('claim-password').value;
@@ -579,13 +588,16 @@ function renderLessonResults(books, query) {
   const bookIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>';
   container.innerHTML = `
     <p class="card-label">Stories that explore "${escapeHtml(query)}"</p>
+    ${ratingLegendHtml(books)}
     ${books.map((b) => {
       if (!b?.title) return '';
+      const rating = renderStarRating(b.averageRating, b.ratingsCount, b.analysisCategories);
       return `
         <div class="comparable-title">
-          <span class="comparable-icon" aria-hidden="true">${bookIcon}</span>
+          ${b.thumbnail ? `<img class="comparable-thumb" src="${escapeHtml(b.thumbnail)}" alt="" />` : `<span class="comparable-icon" aria-hidden="true">${bookIcon}</span>`}
           <div>
             <p class="comparable-title-name"><button class="lesson-book-title" data-title="${escapeHtml(b.title)}" data-author="${escapeHtml(b.author || '')}">${escapeHtml(b.title)}</button>${b.author ? ` <span class="muted">- ${escapeHtml(b.author)}</span>` : ''}</p>
+            ${rating ? `<div class="comparable-rating">${rating}</div>` : ''}
             ${b.ageRange ? `<p class="muted small">Ages ${escapeHtml(b.ageRange)}</p>` : ''}
             ${b.why ? `<p class="comparable-title-why">${escapeHtml(b.why)}</p>` : ''}
             <button class="link-btn lesson-lookup-btn" data-title="${escapeHtml(b.title)}" data-author="${escapeHtml(b.author || '')}">Look up this book</button>
@@ -597,11 +609,83 @@ function renderLessonResults(books, query) {
 }
 
 function lookUpSuggestedBook(button) {
-  const q = `${button.dataset.title} ${button.dataset.author}`.trim();
-  document.getElementById('input-title-search').value = q;
+  const title = button.dataset.title;
+  const author = button.dataset.author;
+  document.getElementById('input-title-search').value = `${title} ${author}`.trim();
   activateView('scan');
-  lookupBook({ q });
-  document.getElementById('book-card')?.scrollIntoView({ behavior: 'smooth' });
+  // Send title/author separately so the server can match the real book instead of a tie-in
+  // edition whose title happens to repeat the author's name (see the combined-string bug).
+  lookupBook({ q: title, author }, { autoSelectBest: true });
+}
+
+// Worst-case family-fit status across all configured kids for a cached content analysis -
+// null when we have no analysis yet, or no kids to judge it against.
+function overallFamilyStatus(categories) {
+  if (!categories || !kidsCache.length) return null;
+  const statuses = kidsCache.map((kid) => computeVerdict(categories, kid, thresholdsCache).status);
+  if (statuses.includes('avoid')) return 'avoid';
+  if (statuses.includes('review')) return 'review';
+  return 'ok';
+}
+
+// Renders a small colour-coded dot next to the star rating. When we already have a cached
+// content analysis for this exact book AND the family has kids configured, the colour reflects
+// the real fit against the thresholds set in Family settings (worst case across all kids) -
+// falling back to a plain popularity-based tier, and finally to a neutral "not rated yet" dot,
+// so every book gets a visible dot instead of silently having none.
+function renderRatingSignal(averageRating, analysisCategories) {
+  const familyStatus = overallFamilyStatus(analysisCategories);
+  if (familyStatus) {
+    const tier = familyStatus === 'ok' ? 'green' : familyStatus === 'review' ? 'amber' : 'red';
+    return `<span class="rating-signal rating-signal-${tier}" title="${escapeHtml(VERDICT_META[familyStatus].label)} for your family" aria-hidden="true"></span>`;
+  }
+  if (typeof averageRating !== 'number' || averageRating <= 0) {
+    return '<span class="rating-signal rating-signal-gray" title="Not yet rated by readers, and not yet analysed for your family" aria-hidden="true"></span>';
+  }
+  const tier = averageRating >= 4 ? 'green' : averageRating >= 3 ? 'amber' : 'red';
+  const label = tier === 'green' ? 'Highly rated' : tier === 'amber' ? 'Mixed reviews' : 'Poorly rated';
+  return `<span class="rating-signal rating-signal-${tier}" title="${label} by readers - not yet checked against your family settings" aria-hidden="true"></span>`;
+}
+
+// Spells out what the rating dots mean - always shown, since every book now gets a dot
+// (green/amber/red for family-fit or popularity, gray when neither is known yet).
+function ratingLegendHtml(books) {
+  const hasFamilyFit = books.some((b) => overallFamilyStatus(b?.analysisCategories));
+  const hasRating = books.some((b) => typeof b?.averageRating === 'number' && b.averageRating > 0);
+  const hasUnrated = books.some((b) => !overallFamilyStatus(b?.analysisCategories)
+    && !(typeof b?.averageRating === 'number' && b.averageRating > 0));
+  if (hasFamilyFit) {
+    return `
+      <p class="rating-legend">
+        <span class="rating-legend-item"><span class="rating-signal rating-signal-green" aria-hidden="true"></span>Good to go for your family</span>
+        <span class="rating-legend-item"><span class="rating-signal rating-signal-amber" aria-hidden="true"></span>Worth discussing first</span>
+        <span class="rating-legend-item"><span class="rating-signal rating-signal-red" aria-hidden="true"></span>Not a fit for your family</span>
+        ${hasUnrated ? '<span class="rating-legend-item"><span class="rating-signal rating-signal-gray" aria-hidden="true"></span>Not analysed yet</span>' : ''}
+      </p>
+      ${hasRating ? '<p class="hint small">Books not analysed yet show a reader-popularity dot instead.</p>' : ''}`;
+  }
+  return `
+    <p class="rating-legend">
+      <span class="rating-legend-item"><span class="rating-signal rating-signal-green" aria-hidden="true"></span>Highly rated (4-5)</span>
+      <span class="rating-legend-item"><span class="rating-signal rating-signal-amber" aria-hidden="true"></span>Mixed reviews (3-3.9)</span>
+      <span class="rating-legend-item"><span class="rating-signal rating-signal-red" aria-hidden="true"></span>Poorly rated (below 3)</span>
+      ${hasUnrated ? '<span class="rating-legend-item"><span class="rating-signal rating-signal-gray" aria-hidden="true"></span>No rating yet</span>' : ''}
+    </p>`;
+}
+
+// Renders a compact star rating (e.g. from Google Books) so lists of books are easier to scan
+// at a glance, plus the family-fit/popularity dot. Returns '' only when there's truly nothing
+// to show yet (no cached analysis and no reader rating).
+function renderStarRating(averageRating, ratingsCount, analysisCategories) {
+  const signal = renderRatingSignal(averageRating, analysisCategories);
+  if (!signal) return '';
+  if (typeof averageRating !== 'number' || averageRating <= 0) {
+    return `<span class="star-rating">${signal}</span>`;
+  }
+  const rounded = Math.round(averageRating);
+  const stars = Array.from({ length: 5 }, (_, i) => (i < rounded ? '★' : '☆')).join('');
+  const countLabel = ratingsCount ? ` (${ratingsCount.toLocaleString()})` : '';
+  return `<span class="star-rating" title="${averageRating.toFixed(1)} out of 5${ratingsCount ? ` from ${ratingsCount.toLocaleString()} ratings` : ''}">${signal}<span class="star-rating-stars" aria-hidden="true">${stars}</span><span class="star-rating-value">${averageRating.toFixed(1)}${countLabel}</span></span>`;
 }
 
 document.addEventListener('click', (event) => {
@@ -610,7 +694,7 @@ document.addEventListener('click', (event) => {
 });
 
 // ---------- lookup ----------
-async function lookupBook(payload) {
+async function lookupBook(payload, { autoSelectBest = false } = {}) {
   const errorEl = document.getElementById('lookup-error');
   errorEl.classList.add('hidden');
   hide('book-card');
@@ -629,7 +713,13 @@ async function lookupBook(payload) {
 
     if (Array.isArray(data.books)) {
       lookupCandidates = data.books;
-      renderLookupResults(data.books, payload.q || '');
+      if (autoSelectBest && data.books.length) {
+        currentBook = data.books[0];
+        renderBookCard(currentBook);
+        renderBookFoundModal(currentBook);
+      } else {
+        renderLookupResults(data.books, payload.q || '');
+      }
     } else {
       currentBook = data;
       renderBookCard(data);
@@ -652,6 +742,22 @@ function renderBookCard(book) {
   show('book-card');
 }
 
+// Pops the found book straight in front of the user (e.g. after picking a theme-search
+// suggestion) instead of making them scroll down past the results list to see it.
+function renderBookFoundModal(book) {
+  const metaParts = [book.publisher, book.publishedDate].filter(Boolean);
+  document.getElementById('book-found-modal-body').innerHTML = `
+    ${book.thumbnail ? `<img class="book-thumb" src="${escapeHtml(book.thumbnail)}" alt="" />` : ''}
+    <div>
+      <h2>${escapeHtml(book.title + (book.subtitle ? `: ${book.subtitle}` : ''))}</h2>
+      <p class="muted small">${escapeHtml(book.authors?.length ? book.authors.join(', ') : 'Author unknown')}</p>
+      ${metaParts.length ? `<p class="muted small">${escapeHtml(metaParts.join(' · '))}</p>` : ''}
+      ${renderStarRating(book.averageRating, book.ratingsCount)}
+    </div>
+  `;
+  show('book-found-modal');
+}
+
 function renderLookupResults(books, query) {
   const container = document.getElementById('book-results');
   if (!books.length) {
@@ -661,6 +767,7 @@ function renderLookupResults(books, query) {
   }
   container.innerHTML = `
     <p class="card-label">Choose a book to analyse</p>
+    ${ratingLegendHtml(books)}
     <div class="book-result-list">
       ${books.map((book, index) => `
         <button class="book-result" type="button" data-book-index="${index}">
@@ -668,6 +775,7 @@ function renderLookupResults(books, query) {
           <span class="book-result-copy">
             <strong>${escapeHtml(book.title)}${book.subtitle ? `: ${escapeHtml(book.subtitle)}` : ''}</strong>
             <span>${escapeHtml(book.authors?.join(', ') || 'Author unknown')}</span>
+            ${renderStarRating(book.averageRating, book.ratingsCount, book.analysisCategories)}
             <small>${escapeHtml([book.publisher, book.publishedDate].filter(Boolean).join(' · '))}</small>
           </span>
         </button>
@@ -702,6 +810,9 @@ function startLoadingStages() {
   loadingStageTimer = setInterval(() => {
     i = (i + 1) % ANALYSIS_LOADING_STAGES.length;
     statusEl.textContent = ANALYSIS_LOADING_STAGES[i];
+    // The modal body gets replaced once loading ends, so this element may no longer exist.
+    const modalStatusEl = document.getElementById('summary-modal-status');
+    if (modalStatusEl) modalStatusEl.textContent = ANALYSIS_LOADING_STAGES[i];
   }, 4500);
 }
 
@@ -709,10 +820,43 @@ function stopLoadingStages() {
   clearInterval(loadingStageTimer);
 }
 
-document.getElementById('btn-analyze').addEventListener('click', async () => {
+// Builds the same error card markup for two different containers (inline card + popup) without
+// duplicating an element id - each caller supplies its own suffix for the upgrade button.
+function analysisErrorHtml(message, resetsOn, idSuffix) {
+  return `
+    <p class="error">${escapeHtml(message)}</p>
+    ${resetsOn ? `<p class="muted small">Your free analyses reset on ${escapeHtml(resetsOn)}.</p>` : ''}
+    <button id="btn-upgrade-cta-${idSuffix}" class="btn btn-primary btn-block">Upgrade to ${escapeHtml(brandName())} Family</button>`;
+}
+
+// Shows a loading state in the popup immediately, so the whole analyse flow (wait + result)
+// happens in front of the user instead of requiring a scroll down to the inline card.
+function renderSummaryModalLoading() {
+  document.getElementById('summary-modal-body').innerHTML = `
+    <p class="card-label">Analysing</p>
+    <h2>${escapeHtml(currentBook?.title || 'This book')}</h2>
+    <p class="loading-text"><span id="summary-modal-status">${ANALYSIS_LOADING_STAGES[0]}</span><span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+    <p class="hint centered">Real research takes a moment, usually 20-40 seconds.</p>
+  `;
+  hide('btn-summary-see-full');
+  show('summary-modal');
+}
+
+document.getElementById('btn-analyze').addEventListener('click', analyzeCurrentBook);
+document.getElementById('btn-analyze-modal').addEventListener('click', () => {
+  hide('book-found-modal');
+  analyzeCurrentBook();
+});
+document.getElementById('btn-close-book-found').addEventListener('click', () => hide('book-found-modal'));
+document.getElementById('book-found-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'book-found-modal') hide('book-found-modal');
+});
+
+async function analyzeCurrentBook() {
   if (!currentBook) return;
   hide('analysis-card');
   show('analysis-loading');
+  renderSummaryModalLoading();
   startLoadingStages();
 
   try {
@@ -731,12 +875,14 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
     if (!res.ok) {
       if (res.status === 402) {
         const resetsOn = data.quotaResetsOn ? formatResetDate(data.quotaResetsOn) : '';
-        document.getElementById('analysis-card').innerHTML = `
-          <p class="error">${escapeHtml(data.error)}</p>
-          ${resetsOn ? `<p class="muted small">Your free analyses reset on ${escapeHtml(resetsOn)}.</p>` : ''}
-          <button id="btn-upgrade-cta" class="btn btn-primary btn-block">Upgrade to ${escapeHtml(brandName())} Family</button>`;
-        document.getElementById('btn-upgrade-cta').addEventListener('click', () => startBillingFlow('checkout'));
+        document.getElementById('analysis-card').innerHTML = analysisErrorHtml(data.error, resetsOn, 'card');
+        document.getElementById('btn-upgrade-cta-card').addEventListener('click', () => startBillingFlow('checkout'));
         show('analysis-card');
+
+        document.getElementById('summary-modal-body').innerHTML = analysisErrorHtml(data.error, resetsOn, 'modal');
+        document.getElementById('btn-upgrade-cta-modal').addEventListener('click', () => startBillingFlow('checkout'));
+        hide('btn-summary-see-full');
+        show('summary-modal');
         return;
       }
       throw new Error(data.error || 'Analysis failed');
@@ -748,11 +894,15 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
   } catch (err) {
     document.getElementById('analysis-card').innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
     show('analysis-card');
+
+    document.getElementById('summary-modal-body').innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
+    hide('btn-summary-see-full');
+    show('summary-modal');
   } finally {
     stopLoadingStages();
     hide('analysis-loading');
   }
-});
+}
 
 const CATEGORY_LABELS = {
   sexual_content: 'Sexual content',
@@ -982,8 +1132,33 @@ function renderAnalysis(result) {
     <button id="btn-save" class="btn btn-primary btn-block">Save to library</button>
   `;
   show('analysis-card');
+  renderSummaryModal(result, cats);
 
   document.getElementById('btn-save').addEventListener('click', saveCurrentBook);
+}
+
+// Shows the "at a glance" summary + family verdicts in a popup right away, so a parent doesn't
+// have to scroll past the whole deep-dive card just to read the summary they came here for.
+function renderSummaryModal(result, cats) {
+  const chips = [
+    `<span class="info-chip confidence-${escapeHtml(result.confidence || 'unknown')}">Confidence: ${escapeHtml(result.confidence || 'unknown')}</span>`,
+    renderAgeGuidanceChip(result.age_guidance, { truncate: false }),
+  ].filter(Boolean).join('');
+
+  document.getElementById('summary-modal-body').innerHTML = `
+    <div class="summary-modal-book">
+      ${currentBook?.thumbnail ? `<img class="book-thumb" src="${escapeHtml(currentBook.thumbnail)}" alt="" />` : ''}
+      <div>
+        <h2>${escapeHtml(currentBook?.title || 'This book')}</h2>
+        <p class="muted small">${escapeHtml((currentBook?.authors || []).join(', ') || 'Author unknown')}</p>
+      </div>
+    </div>
+    <div class="info-chip-row">${chips}</div>
+    <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
+    ${renderKidVerdicts(cats)}
+  `;
+  show('btn-summary-see-full');
+  show('summary-modal');
 }
 
 async function saveCurrentBook() {

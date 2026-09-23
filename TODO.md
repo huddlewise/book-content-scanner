@@ -1,6 +1,6 @@
 # KinRead - To Do
 
-Last updated: 2026-09-06
+Last updated: 2026-09-17
 
 ## Done this session
 
@@ -20,7 +20,7 @@ Main feature work committed and deployed as `19d9990`; cover diagnostics deploye
 
 ---
 
-## 1. Live Stripe — the main blocker for taking money
+## 1. Live Stripe — activated and validated
 
 The full checkout → upgrade → portal → cancel → downgrade loop is already proven in test mode.
 The live product and price already exist:
@@ -28,14 +28,13 @@ The live product and price already exist:
 - product `prod_VB8bxzPEKKbrvP` (KinRead Family)
 - price `price_1UAmKOHVo6yA55eejhkcbZO0` ($5.99/mo)
 
-Remaining:
+Completed:
 
-- [ ] Create a **live-mode** webhook endpoint in the Stripe Dashboard pointing at
-      `https://book-content-scanner.onrender.com/api/billing/webhook`
-      Events: `checkout.session.completed`, `customer.subscription.created/updated/deleted`
-- [ ] Set in Render: `STRIPE_SECRET_KEY` (live `sk_live_...`), `STRIPE_PRICE_ID`,
-      `STRIPE_WEBHOOK_SECRET` (from the new endpoint)
-- [ ] One real live-card purchase, confirm the webhook flips the account to `paid`, then cancel
+- [x] Created and enabled the live-mode webhook endpoint at
+      `https://book-content-scanner.onrender.com/api/billing/webhook` with
+      `checkout.session.completed` and subscription lifecycle events
+- [x] Configured the live Stripe values in Render
+- [x] Completed the live checkout and cancellation validation, confirming upgrade and downgrade
 
 Live secrets go straight from the Stripe Dashboard into Render — never through the terminal
 or chat, unlike the test-mode setup.
