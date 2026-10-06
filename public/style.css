@@ -1421,7 +1421,7 @@ input:focus, button:focus-visible, textarea:focus {
 .verdict-dot {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
