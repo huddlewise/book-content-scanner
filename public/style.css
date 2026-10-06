@@ -775,6 +775,8 @@ input:focus, button:focus-visible, textarea:focus {
   gap: 0.45rem;
   margin: 0.45rem 0 0.2rem;
 }
+.library-meta-chips .info-chip,
+.library-item-badges .mini-badge { border-radius: 0; }
 
 /* ---------- comparable titles ---------- */
 .comparable-titles {
@@ -1187,7 +1189,7 @@ input:focus, button:focus-visible, textarea:focus {
   padding: 0.85rem;
   margin: 0.5rem 0;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 3px;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
