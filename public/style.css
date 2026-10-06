@@ -1435,6 +1435,24 @@ input:focus, button:focus-visible, textarea:focus {
 .severity-key-body .hint { font-size: 0.76rem; }
 .family-severity-key { margin-top: 0; margin-bottom: 1.1rem; }
 
+.account-danger-zone {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  grid-column: 1 / -1;
+  margin: 3rem 0 1rem;
+}
+.account-danger-zone summary {
+  color: var(--stamp-red);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.8rem 1rem;
+}
+.account-danger-zone[open] summary { border-bottom: 1px solid var(--line); }
+.account-danger-zone-content { padding: 0.85rem 1rem 1rem; }
+.account-danger-zone-content p { margin: 0 0 0.75rem; }
+.account-danger-button { background: var(--stamp-red-soft); color: var(--stamp-red); }
+
 .decision-guide {
   margin: 1rem 0 1.2rem;
   padding: 0.95rem 1.05rem;

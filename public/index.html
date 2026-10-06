@@ -197,11 +197,13 @@
           <p id="thresholds-saved" class="hint hidden">Saved. Future verdicts will use these boundaries.</p>
         </div>
 
-        <div class="card">
-          <p class="card-label">Account</p>
-          <p class="hint">Deleting your account permanently removes your library, kids' profiles, and thresholds. This can't be undone.</p>
-          <button id="btn-open-delete" class="btn btn-block" style="background:var(--stamp-red-soft);color:var(--stamp-red)">Delete my account</button>
-        </div>
+        <details class="account-danger-zone">
+          <summary>Danger zone - account deletion</summary>
+          <div class="account-danger-zone-content">
+            <p>Deleting your account permanently removes your library, kids' profiles, and thresholds. This can't be undone.</p>
+            <button id="btn-open-delete" class="btn btn-block account-danger-button">Review account deletion</button>
+          </div>
+        </details>
       </section>
     </main>
   </div>
