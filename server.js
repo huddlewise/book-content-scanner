@@ -35,8 +35,8 @@ const DEFAULT_THRESHOLDS = {
 };
 
 const DEFAULT_BRAND = {
-  name: 'KinRead',
-  shortName: 'KinRead',
+  name: 'Deliberate',
+  shortName: 'Deliberate',
   tagline: 'Know the book before you say yes.',
   primaryColor: '#00a99d',
   primaryDark: '#08756f',
@@ -69,7 +69,7 @@ async function syncAccountFromSubscription(subscription) {
     || candidate.stripeCustomerId === subscription.customer
   ));
   if (!account) {
-    console.warn(`Stripe subscription ${subscription.id} could not be matched to a KinRead account.`);
+    console.warn(`Stripe subscription ${subscription.id} could not be matched to a Deliberate account.`);
     return;
   }
 
@@ -300,7 +300,7 @@ function organizationBrand(organization) {
     gradient: gradient || DEFAULT_BRAND.gradient,
     logoUrl: safePublicUrl(organization.logoUrl),
     supportEmail: isValidEmail(organization.supportEmail) ? organization.supportEmail.trim().toLowerCase() : '',
-    poweredBy: organization.showPoweredBy === false ? '' : 'KinRead',
+    poweredBy: organization.showPoweredBy === false ? '' : 'Deliberate',
     organization: {
       id: organization.id,
       slug: organization.slug,
@@ -363,7 +363,7 @@ async function sendEmail({ to, subject, html, text }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'KinRead <onboarding@resend.dev>',
+        from: process.env.RESEND_FROM_EMAIL || 'Deliberate <onboarding@resend.dev>',
         to,
         subject,
         html,
@@ -403,7 +403,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>KinRead</title>
+<title>Deliberate</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -438,7 +438,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <body>
   <form class="card" id="auth-form">
     <span class="brand-mark" aria-hidden="true"><img id="brand-logo" class="brand-logo hidden" alt="" /><svg id="brand-default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
-    <h1 id="brand-name">Kin<span>Read</span></h1>
+    <h1 id="brand-name">Deliberate</h1>
     <p class="sub" id="auth-sub">Sign in to your account.</p>
     <input id="email" type="email" placeholder="Email" autocomplete="email" autofocus required />
     <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
@@ -461,7 +461,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
   </form>
   <script>
     let mode = 'login';
-    let activeBrand = { name: 'KinRead', shortName: 'KinRead' };
+    let activeBrand = { name: 'Deliberate', shortName: 'Deliberate' };
     const form = document.getElementById('auth-form');
     const sub = document.getElementById('auth-sub');
     const submitBtn = document.getElementById('auth-submit');
@@ -471,10 +471,10 @@ const AUTH_PAGE_HTML = `<!doctype html>
         const res = await fetch('/api/brand' + window.location.search);
         if (!res.ok) return;
         activeBrand = Object.assign(activeBrand, await res.json());
-        document.title = activeBrand.shortName || activeBrand.name || 'KinRead';
+        document.title = activeBrand.shortName || activeBrand.name || 'Deliberate';
         document.documentElement.style.setProperty('--primary', activeBrand.primaryColor || '#00a99d');
         document.documentElement.style.setProperty('--gradient-brand', activeBrand.gradient || 'linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%)');
-        document.getElementById('brand-name').textContent = activeBrand.shortName || activeBrand.name || 'KinRead';
+        document.getElementById('brand-name').textContent = activeBrand.shortName || activeBrand.name || 'Deliberate';
         const logo = document.getElementById('brand-logo');
         const icon = document.getElementById('brand-default-icon');
         if (activeBrand.logoUrl && logo && icon) {
@@ -482,13 +482,13 @@ const AUTH_PAGE_HTML = `<!doctype html>
           logo.classList.remove('hidden');
           icon.classList.add('hidden');
         }
-        if (mode === 'signup') sub.textContent = 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'KinRead') + ' account.';
+        if (mode === 'signup') sub.textContent = 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'Deliberate') + ' account.';
       } catch {}
     }
     loadBrand();
     function toggleMode() {
       mode = mode === 'login' ? 'signup' : 'login';
-      sub.textContent = mode === 'login' ? 'Sign in to your account.' : 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'KinRead') + ' account.';
+      sub.textContent = mode === 'login' ? 'Sign in to your account.' : 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'Deliberate') + ' account.';
       submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
       document.getElementById('legal-consent').style.display = mode === 'signup' ? 'block' : 'none';
       document.getElementById('forgot-toggle').style.display = mode === 'login' ? 'block' : 'none';
@@ -674,23 +674,23 @@ function appBaseUrl(req) {
 
 function passwordResetEmail(resetUrl) {
   return {
-    subject: 'Reset your KinRead password',
+    subject: 'Reset your Deliberate password',
     text: [
-      'Someone requested a password reset for your KinRead account.',
+      'Someone requested a password reset for your Deliberate account.',
       '',
       'Choose a new password using the link below (valid for 1 hour):',
       resetUrl,
       '',
       "If this wasn't you, you can safely ignore this email - your password won't change.",
       '',
-      'KinRead - know the book before you say yes.',
+      'Deliberate - know the book before you say yes.',
     ].join('\n'),
     html: `<!doctype html>
 <html lang="en"><body style="margin:0;padding:24px;background:#e9f8f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#103b42;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;margin:0 auto;background:#fbfffe;border-radius:18px;padding:32px;">
     <tr><td>
       <p style="font-size:1.35rem;font-weight:700;margin:0 0 24px;letter-spacing:-0.02em;">Kin<span style="color:#00a99d;">Read</span></p>
-      <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your KinRead account.</p>
+      <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your Deliberate account.</p>
       <p style="margin:0 0 24px;">
         <a href="${resetUrl}" style="display:inline-block;background:#00a99d;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px;">Choose a new password</a>
       </p>
@@ -811,7 +811,7 @@ function publicBookPage(book, analysis, canonicalUrl) {
   }).filter(Boolean).join('');
   const byline = (book.authors || []).filter(Boolean).join(', ');
   const image = safePublicUrl(book.thumbnail);
-  const description = analysis.summary || `A KinRead content overview for ${book.title}.`;
+  const description = analysis.summary || `A Deliberate content overview for ${book.title}.`;
 
   return `<!doctype html>
 <html lang="en">
@@ -821,18 +821,18 @@ function publicBookPage(book, analysis, canonicalUrl) {
   <meta name="description" content="${escapePublicHtml(description)}" />
   <link rel="canonical" href="${escapePublicHtml(canonicalUrl)}" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="${escapePublicHtml(book.title)} content guide | KinRead" />
+  <meta property="og:title" content="${escapePublicHtml(book.title)} content guide | Deliberate" />
   <meta property="og:description" content="${escapePublicHtml(description)}" />
   <meta property="og:url" content="${escapePublicHtml(canonicalUrl)}" />
   ${image ? `<meta property="og:image" content="${escapePublicHtml(image)}" />` : ''}
-  <title>${escapePublicHtml(book.title)} content guide | KinRead</title>
+  <title>${escapePublicHtml(book.title)} content guide | Deliberate</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <main class="public-book-page">
-    <a class="back-link" href="/login">KinRead</a>
+    <a class="back-link" href="/login">Deliberate</a>
     <article class="public-book-card">
       <header class="public-book-header">
         ${image ? `<img src="${escapePublicHtml(image)}" alt="Cover of ${escapePublicHtml(book.title)}" />` : ''}
@@ -848,7 +848,7 @@ function publicBookPage(book, analysis, canonicalUrl) {
       ${models ? `<section class="public-book-section"><h2>Ways of thinking this story explores</h2><ul>${models}</ul></section>` : ''}
       ${analysis.caveat ? `<p class="public-book-caveat">${escapePublicHtml(analysis.caveat)}</p>` : ''}
       ${sources ? `<section class="public-book-section"><h2>Sources</h2><ul class="sources">${sources}</ul></section>` : ''}
-      <p class="public-book-disclaimer">This is a shared book analysis, not a family verdict. KinRead keeps individual children, family settings, library entries, and notes private.</p>
+      <p class="public-book-disclaimer">This is a shared book analysis, not a family verdict. Deliberate keeps individual children, family settings, library entries, and notes private.</p>
       <a class="btn btn-primary public-book-cta" href="/login">Check this book for your family</a>
     </article>
   </main>
@@ -862,7 +862,7 @@ app.get('/book/:isbn', async (req, res) => {
   const cache = await readAnalysisCache();
   const cachedAnalysis = cache[`isbn:${isbn.toLowerCase()}`];
   if (!cachedAnalysis?.identified && cachedAnalysis?.identified !== undefined) return res.status(404).send('Book not found.');
-  if (!cachedAnalysis) return res.status(404).send('This book has not been analysed by KinRead yet.');
+  if (!cachedAnalysis) return res.status(404).send('This book has not been analysed by Deliberate yet.');
 
   const { publicBook, ...analysis } = cachedAnalysis;
   const book = await publicBookMetadata(isbn, publicBook);
@@ -1198,7 +1198,7 @@ async function checkAndConsumeAnalysisQuota(accountId) {
     await writeAccounts(accounts);
     return {
       ok: false,
-      error: `You've used your ${FREE_TIER_MONTHLY_LIMIT} free analyses this month. Upgrade to KinRead Family for unlimited analyses.`,
+      error: `You've used your ${FREE_TIER_MONTHLY_LIMIT} free analyses this month. Upgrade to Deliberate Family for unlimited analyses.`,
       quotaResetsOn: currentPeriodEnd(),
     };
   }
@@ -1226,6 +1226,67 @@ function normalizeBookTitle(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
+}
+
+async function findOpenLibraryBookByIsbn(isbn) {
+  try {
+    const bibkey = `ISBN:${isbn}`;
+    const url = `https://openlibrary.org/api/books?bibkeys=${encodeURIComponent(bibkey)}&format=json&jscmd=data`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) return null;
+    const edition = (await response.json())[bibkey];
+    if (!edition?.title) return null;
+
+    const identifierType = isbn.length === 10 ? 'ISBN_10' : 'ISBN_13';
+    return {
+      volumeInfo: {
+        title: edition.title,
+        authors: (edition.authors || []).map((author) => author.name).filter(Boolean),
+        publisher: edition.publishers?.[0]?.name || '',
+        publishedDate: edition.publish_date || '',
+        imageLinks: { thumbnail: edition.cover?.medium || edition.cover?.small || edition.cover?.large || '' },
+        industryIdentifiers: [{ type: identifierType, identifier: isbn }],
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function findOpenLibraryBooksByTitle(title, authorHint = '') {
+  try {
+    const params = new URLSearchParams({
+      title,
+      limit: '10',
+      fields: 'key,title,author_name,isbn,first_publish_year,cover_i',
+    });
+    if (authorHint) params.set('author', authorHint);
+    const response = await fetch(`https://openlibrary.org/search.json?${params}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!response.ok) return [];
+    const { docs = [] } = await response.json();
+    return docs.filter((book) => book.title).map((book) => {
+      const identifiers = (book.isbn || [])
+        .filter((isbn) => /^\d{9,13}$/.test(isbn.replace(/-/g, '')))
+        .map((isbn) => ({
+          type: isbn.replace(/-/g, '').length === 10 ? 'ISBN_10' : 'ISBN_13',
+          identifier: isbn.replace(/-/g, ''),
+        }))
+        .sort((a, b) => b.identifier.length - a.identifier.length);
+      return {
+        volumeInfo: {
+          title: book.title,
+          authors: book.author_name || [],
+          publishedDate: book.first_publish_year ? String(book.first_publish_year) : '',
+          imageLinks: book.cover_i ? { thumbnail: `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg` } : {},
+          industryIdentifiers: identifiers,
+        },
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 function rankBooks(items, query, authorHint = '') {
@@ -1328,6 +1389,16 @@ app.post('/api/lookup', async (req, res) => {
       if (process.env.GOOGLE_BOOKS_API_KEY) fallbackUrl += `&key=${process.env.GOOGLE_BOOKS_API_KEY}`;
       const fallbackResponse = await fetch(fallbackUrl);
       if (fallbackResponse.ok) data = await fallbackResponse.json();
+    }
+
+    if ((!data.items || data.items.length === 0) && cleanIsbn) {
+      const openLibraryBook = await findOpenLibraryBookByIsbn(cleanIsbn);
+      if (openLibraryBook) data = { items: [openLibraryBook] };
+    }
+
+    if ((!data.items || data.items.length === 0) && q) {
+      const openLibraryBooks = await findOpenLibraryBooksByTitle(q.trim(), authorHint);
+      if (openLibraryBooks.length) data = { items: openLibraryBooks };
     }
 
     if (!data.items || data.items.length === 0) {
@@ -1574,7 +1645,7 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-5',
-      max_tokens: 5000,
+      max_tokens: 8000,
       tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       messages: [{ role: 'user', content: prompt }],
     });
@@ -1850,7 +1921,7 @@ const PORT = process.env.PORT || 3000;
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`KinRead running at http://localhost:${PORT}`);
+      console.log(`Deliberate running at http://localhost:${PORT}`);
       if (!anthropic) {
         console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
       }
@@ -1861,7 +1932,7 @@ initializeDatabase()
     pool?.end().catch(() => {});
     pool = null;
     app.listen(PORT, () => {
-      console.log(`KinRead running at http://localhost:${PORT}`);
+      console.log(`Deliberate running at http://localhost:${PORT}`);
       if (!anthropic) {
         console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
       }

@@ -19,7 +19,7 @@ if not exist .env (
 )
 
 echo.
-echo Starting KinRead...
+echo Starting Deliberate...
 echo Your browser will open to http://localhost:3000 in a few seconds.
 start "" cmd /c "timeout /t 2 >nul && start http://localhost:3000"
 call npm start

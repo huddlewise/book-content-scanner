@@ -11,7 +11,7 @@ let pendingCoverDetails = null;
 let kidsCache = [];
 let thresholdsCache = {};
 let affiliateConfig = null;
-let activeBrand = { name: 'KinRead', shortName: 'KinRead', tagline: 'Know the book before you say yes.' };
+let activeBrand = { name: 'Deliberate', shortName: 'Deliberate', tagline: 'Know the book before you say yes.' };
 
 loadBrand();
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
@@ -32,14 +32,14 @@ async function loadBrand() {
 }
 
 function applyBrand(brand) {
-  document.title = brand.shortName || brand.name || 'KinRead';
+  document.title = brand.shortName || brand.name || 'Deliberate';
   document.documentElement.style.setProperty('--primary', brand.primaryColor || '#00a99d');
   document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#08756f');
   document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#d7f3ee');
   document.documentElement.style.setProperty('--gradient-brand', brand.gradient || 'linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%)');
 
   const nameEl = document.getElementById('brand-name');
-  if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'KinRead';
+  if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'Deliberate';
   const taglineEl = document.getElementById('brand-tagline');
   if (taglineEl) taglineEl.textContent = brand.tagline || 'Know the book before you say yes.';
 
@@ -53,7 +53,7 @@ function applyBrand(brand) {
 }
 
 function brandName() {
-  return activeBrand.shortName || activeBrand.name || 'KinRead';
+  return activeBrand.shortName || activeBrand.name || 'Deliberate';
 }
 
 // ---------- account ----------
@@ -311,6 +311,7 @@ function startCamera(mode) {
   cameraMode = mode;
   cameraActive = true;
   cameraWrap.classList.remove('hidden');
+  cameraWrap.classList.toggle('camera-photo-mode', mode === 'photo');
 
   if (mode === 'barcode') {
     if (typeof ZXing === 'undefined') {
@@ -359,8 +360,9 @@ function startCamera(mode) {
     navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
+        width: { ideal: 1080 },
+        height: { ideal: 1920 },
+        aspectRatio: { ideal: 3 / 4 },
       },
     })
       .then((stream) => {
@@ -391,6 +393,7 @@ function stopCamera() {
   cameraActive = false;
   cameraMode = null;
   cameraWrap.classList.add('hidden');
+  cameraWrap.classList.remove('camera-photo-mode');
   btnCapturePhoto.classList.add('hidden');
   btnToggleCamera.textContent = 'Scan barcode';
   btnPhotoCover.textContent = 'Photograph cover';
@@ -398,12 +401,36 @@ function stopCamera() {
 }
 
 async function capturePhoto() {
+  const sourceWidth = cameraVideo.videoWidth;
+  const sourceHeight = cameraVideo.videoHeight;
+  if (!sourceWidth || !sourceHeight) {
+    cameraStatus.textContent = 'Camera is not ready yet. Hold still and try again.';
+    return;
+  }
+
+  const targetAspect = 3 / 4;
+  let sourceX = 0;
+  let sourceY = 0;
+  let cropWidth = sourceWidth;
+  let cropHeight = sourceHeight;
+  if (sourceWidth / sourceHeight > targetAspect) {
+    cropWidth = sourceHeight * targetAspect;
+    sourceX = (sourceWidth - cropWidth) / 2;
+  } else {
+    cropHeight = sourceWidth / targetAspect;
+    sourceY = (sourceHeight - cropHeight) / 2;
+  }
+
   const canvas = document.createElement('canvas');
   const maxDim = 1000;
-  const scale = Math.min(1, maxDim / Math.max(cameraVideo.videoWidth, cameraVideo.videoHeight));
-  canvas.width = cameraVideo.videoWidth * scale;
-  canvas.height = cameraVideo.videoHeight * scale;
-  canvas.getContext('2d').drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+  const scale = Math.min(1, maxDim / cropHeight);
+  canvas.width = Math.round(cropWidth * scale);
+  canvas.height = Math.round(cropHeight * scale);
+  canvas.getContext('2d').drawImage(
+    cameraVideo,
+    sourceX, sourceY, cropWidth, cropHeight,
+    0, 0, canvas.width, canvas.height,
+  );
   const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
   const previewUrl = canvas.toDataURL('image/jpeg', 0.72);
 
@@ -628,49 +655,42 @@ function overallFamilyStatus(categories) {
   return 'ok';
 }
 
-// Renders a small colour-coded dot next to the star rating. When we already have a cached
-// content analysis for this exact book AND the family has kids configured, the colour reflects
-// the real fit against the thresholds set in Family settings (worst case across all kids) -
-// falling back to a plain popularity-based tier, and finally to a neutral "not rated yet" dot,
-// so every book gets a visible dot instead of silently having none.
+function renderQuickBookSignal(book) {
+  const familyStatus = overallFamilyStatus(book.analysisCategories);
+  const status = familyStatus || 'review';
+  const label = familyStatus ? VERDICT_META[familyStatus].label : 'Maybe - needs a closer look';
+  const detail = familyStatus
+    ? 'Based on the saved analysis and your family settings.'
+    : book.analysisCategories
+      ? 'Add child ages and settings to check this book for your family.'
+      : 'No saved content analysis yet. Analyse it before deciding.';
+  return `
+    <div class="quick-book-signal status-${status}" role="status">
+      <span class="quick-book-signal-dot" aria-hidden="true"></span>
+      <span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(detail)}</small></span>
+    </div>`;
+}
+
+// Reader ratings never determine the family-fit colour; only a cached analysis and family settings do.
 function renderRatingSignal(averageRating, analysisCategories) {
   const familyStatus = overallFamilyStatus(analysisCategories);
   if (familyStatus) {
     const tier = familyStatus === 'ok' ? 'green' : familyStatus === 'review' ? 'amber' : 'red';
     return `<span class="rating-signal rating-signal-${tier}" title="${escapeHtml(VERDICT_META[familyStatus].label)} for your family" aria-hidden="true"></span>`;
   }
-  if (typeof averageRating !== 'number' || averageRating <= 0) {
-    return '<span class="rating-signal rating-signal-gray" title="Not yet rated by readers, and not yet analysed for your family" aria-hidden="true"></span>';
-  }
-  const tier = averageRating >= 4 ? 'green' : averageRating >= 3 ? 'amber' : 'red';
-  const label = tier === 'green' ? 'Highly rated' : tier === 'amber' ? 'Mixed reviews' : 'Poorly rated';
-  return `<span class="rating-signal rating-signal-${tier}" title="${label} by readers - not yet checked against your family settings" aria-hidden="true"></span>`;
+  return '<span class="rating-signal rating-signal-gray" title="Not yet checked against your family settings" aria-hidden="true"></span>';
 }
 
-// Spells out what the rating dots mean - always shown, since every book now gets a dot
-// (green/amber/red for family-fit or popularity, gray when neither is known yet).
+// Spells out that traffic-light dots are family-fit signals, while stars are reader ratings.
 function ratingLegendHtml(books) {
   const hasFamilyFit = books.some((b) => overallFamilyStatus(b?.analysisCategories));
-  const hasRating = books.some((b) => typeof b?.averageRating === 'number' && b.averageRating > 0);
-  const hasUnrated = books.some((b) => !overallFamilyStatus(b?.analysisCategories)
-    && !(typeof b?.averageRating === 'number' && b.averageRating > 0));
-  if (hasFamilyFit) {
-    return `
-      <p class="rating-legend">
-        <span class="rating-legend-item"><span class="rating-signal rating-signal-green" aria-hidden="true"></span>Good to go for your family</span>
-        <span class="rating-legend-item"><span class="rating-signal rating-signal-amber" aria-hidden="true"></span>Worth discussing first</span>
-        <span class="rating-legend-item"><span class="rating-signal rating-signal-red" aria-hidden="true"></span>Not a fit for your family</span>
-        ${hasUnrated ? '<span class="rating-legend-item"><span class="rating-signal rating-signal-gray" aria-hidden="true"></span>Not analysed yet</span>' : ''}
-      </p>
-      ${hasRating ? '<p class="hint small">Books not analysed yet show a reader-popularity dot instead.</p>' : ''}`;
-  }
+  const hasUnassessed = books.some((b) => !overallFamilyStatus(b?.analysisCategories));
   return `
     <p class="rating-legend">
-      <span class="rating-legend-item"><span class="rating-signal rating-signal-green" aria-hidden="true"></span>Highly rated (4-5)</span>
-      <span class="rating-legend-item"><span class="rating-signal rating-signal-amber" aria-hidden="true"></span>Mixed reviews (3-3.9)</span>
-      <span class="rating-legend-item"><span class="rating-signal rating-signal-red" aria-hidden="true"></span>Poorly rated (below 3)</span>
-      ${hasUnrated ? '<span class="rating-legend-item"><span class="rating-signal rating-signal-gray" aria-hidden="true"></span>No rating yet</span>' : ''}
-    </p>`;
+      ${hasFamilyFit ? '<span class="rating-legend-item"><span class="rating-signal rating-signal-green" aria-hidden="true"></span>Within family settings</span><span class="rating-legend-item"><span class="rating-signal rating-signal-amber" aria-hidden="true"></span>Worth a closer look</span><span class="rating-legend-item"><span class="rating-signal rating-signal-red" aria-hidden="true"></span>Outside family limits</span>' : ''}
+      ${hasUnassessed ? '<span class="rating-legend-item"><span class="rating-signal rating-signal-gray" aria-hidden="true"></span>Not checked for your family</span>' : ''}
+    </p>
+    <p class="hint small">Dots show family fit when an analysis is available; stars show reader ratings.</p>`;
 }
 
 // Renders a compact star rating (e.g. from Google Books) so lists of books are easier to scan
@@ -697,6 +717,7 @@ document.addEventListener('click', (event) => {
 async function lookupBook(payload, { autoSelectBest = false } = {}) {
   const errorEl = document.getElementById('lookup-error');
   errorEl.classList.add('hidden');
+  hide('book-found-modal');
   hide('book-card');
   hide('book-results');
   hide('analysis-card');
@@ -715,14 +736,13 @@ async function lookupBook(payload, { autoSelectBest = false } = {}) {
       lookupCandidates = data.books;
       if (autoSelectBest && data.books.length) {
         currentBook = data.books[0];
-        renderBookCard(currentBook);
         renderBookFoundModal(currentBook);
       } else {
         renderLookupResults(data.books, payload.q || '');
       }
     } else {
       currentBook = data;
-      renderBookCard(data);
+      renderBookFoundModal(data);
     }
   } catch (err) {
     errorEl.textContent = err.message;
@@ -752,8 +772,11 @@ function renderBookFoundModal(book) {
       <h2>${escapeHtml(book.title + (book.subtitle ? `: ${book.subtitle}` : ''))}</h2>
       <p class="muted small">${escapeHtml(book.authors?.length ? book.authors.join(', ') : 'Author unknown')}</p>
       ${metaParts.length ? `<p class="muted small">${escapeHtml(metaParts.join(' · '))}</p>` : ''}
-      ${renderStarRating(book.averageRating, book.ratingsCount)}
     </div>
+    ${renderQuickBookSignal(book)}
+    ${typeof book.averageRating === 'number' && book.averageRating > 0
+      ? `<p class="muted small">Reader rating: ${book.averageRating.toFixed(1)}/5${book.ratingsCount ? ` (${book.ratingsCount.toLocaleString()} ratings)` : ''}</p>`
+      : ''}
   `;
   show('book-found-modal');
 }
@@ -784,11 +807,11 @@ function renderLookupResults(books, query) {
   container.querySelectorAll('.book-result').forEach((button) => {
     button.addEventListener('click', () => {
       currentBook = books[Number(button.dataset.bookIndex)];
-      renderBookCard(currentBook);
-      document.getElementById('book-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      renderBookFoundModal(currentBook);
     });
   });
   show('book-results');
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---------- analysis ----------

@@ -1,6 +1,6 @@
 {
-  "name": "KinRead",
-  "short_name": "KinRead",
+  "name": "Deliberate",
+  "short_name": "Deliberate",
   "description": "Know the book before you say yes.",
   "start_url": "/",
   "display": "standalone",

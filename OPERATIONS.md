@@ -1,4 +1,4 @@
-# KinRead Operations Checklist
+# Deliberate Operations Checklist
 
 Use this checklist before enabling live billing or inviting a wider group of customers.
 
@@ -32,10 +32,10 @@ The health endpoint is public and reports `503` if production Postgres is unavai
 
 ## Affiliate programmes
 
-1. Apply for Amazon Associates and/or Bookshop.org using the business details and public KinRead guides.
+1. Apply for Amazon Associates and/or Bookshop.org using the business details and public Deliberate guides.
 2. When approved, add `AMAZON_ASSOCIATE_TAG` and/or `BOOKSHOP_AFFILIATE_ID` directly in Render.
 3. Open an analysis page and confirm the retailer link and commission disclosure appear correctly.
 
 ## Legal review
 
-Have a qualified lawyer review `public/privacy.html` and `public/terms.html` before paid launch. In particular, confirm the public shared-analysis wording, subscription/cancellation terms, and privacy obligations for the countries where KinRead is offered.
+Have a qualified lawyer review `public/privacy.html` and `public/terms.html` before paid launch. In particular, confirm the public shared-analysis wording, subscription/cancellation terms, and privacy obligations for the countries where Deliberate is offered.

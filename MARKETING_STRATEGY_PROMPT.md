@@ -1,3 +1,3 @@
-# KinRead Marketing Strategy Prompt
+# Deliberate Marketing Strategy Prompt
 
 Copy everything below 

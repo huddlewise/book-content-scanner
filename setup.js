@@ -27,7 +27,7 @@ async function main() {
     return;
   }
 
-  console.log('\nKinRead setup');
+  console.log('\nDeliberate setup');
   console.log('--------------');
   console.log('You need a free Anthropic API key to run analyses.');
   console.log('Get one at https://console.anthropic.com  (Settings -> API Keys)\n');

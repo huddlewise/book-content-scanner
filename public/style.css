@@ -503,6 +503,11 @@ input:focus, button:focus-visible, textarea:focus {
   overflow: hidden;
   margin-bottom: 0.85rem;
 }
+.camera-wrap.camera-photo-mode {
+  aspect-ratio: 3 / 4;
+  max-width: 24rem;
+  margin-inline: auto;
+}
 #camera-preview {
   width: 100%;
   height: 100%;
@@ -515,6 +520,7 @@ input:focus, button:focus-visible, textarea:focus {
   border-radius: 10px;
   pointer-events: none;
 }
+.camera-photo-mode .camera-frame { inset: 8% 16%; }
 .camera-btn-row {
   display: flex;
   gap: 0.6rem;
@@ -532,6 +538,24 @@ input:focus, button:focus-visible, textarea:focus {
 /* ---------- book card ---------- */
 .book-summary { display: flex; gap: 0.9rem; margin-bottom: 0.25rem; }
 .book-card { border-top: 3px solid transparent; border-image: var(--gradient-brand) 1; }
+.quick-book-signal {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.75rem;
+}
+.quick-book-signal.status-ok { background: var(--stamp-green-soft); color: var(--stamp-green); }
+.quick-book-signal.status-review { background: #fdf3de; color: var(--stamp-amber); }
+.quick-book-signal.status-avoid { background: var(--stamp-red-soft); color: var(--stamp-red); }
+.quick-book-signal > span:last-child { display: grid; gap: 0.1rem; min-width: 0; }
+.quick-book-signal strong { font-size: 0.86rem; }
+.quick-book-signal small { color: var(--ink-muted); font-size: 0.73rem; line-height: 1.35; }
+.quick-book-signal-dot { border-radius: 50%; flex: 0 0 0.72rem; height: 0.72rem; }
+.quick-book-signal.status-ok .quick-book-signal-dot { background: var(--stamp-green); }
+.quick-book-signal.status-review .quick-book-signal-dot { background: var(--stamp-amber); }
+.quick-book-signal.status-avoid .quick-book-signal-dot { background: var(--stamp-red); }
 .book-thumb {
   width: 64px;
   height: 92px;
@@ -1607,6 +1631,7 @@ input:focus, button:focus-visible, textarea:focus {
   align-items: center;
   margin-bottom: 0.9rem;
 }
+.book-found-modal-body { display: grid; gap: 0.65rem; }
 .summary-modal-book .book-thumb {
   width: 52px;
   height: 74px;
