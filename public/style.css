@@ -20,10 +20,11 @@
   --stamp-green: #148a5c;
   --stamp-green-soft: #e3f7ee;
   --stamp-navy: #33569e;
-  --radius-sm: 10px;
-  --radius: 18px;
-  --radius-lg: 26px;
+  --radius-sm: 6px;
+  --radius: 6px;
+  --radius-lg: 6px;
   --radius-pill: 999px;
+  --radius-control: 6px;
   --shadow-sm: 0 1px 2px rgba(18, 58, 64, 0.06);
   --shadow-card: 0 2px 8px rgba(18, 58, 64, 0.05), 0 12px 28px rgba(18, 58, 64, 0.08);
   --shadow-card-hover: 0 18px 40px rgba(18, 58, 64, 0.16);
@@ -337,7 +338,7 @@ label {
   gap: 0.4rem;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   padding: 0.3rem 0.3rem 0.3rem 1.1rem;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -357,7 +358,7 @@ label {
 
 .input-row input:focus { outline: none; }
 
-.input-row .btn { border-radius: var(--radius-pill); flex-shrink: 0; }
+.input-row .btn { border-radius: var(--radius-control); flex-shrink: 0; }
 
 input[type="text"], input[inputmode], input:not([type]), input[type="number"] {
   width: 100%;
@@ -365,7 +366,7 @@ input[type="text"], input[inputmode], input:not([type]), input[type="number"] {
   font-size: 0.95rem;
   padding: 0.65rem 0.85rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background: #fff;
   color: var(--ink);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -381,7 +382,7 @@ input:focus, button:focus-visible, textarea:focus {
   border-color: var(--primary);
 }
 
-#library-search { margin: 0; border-radius: var(--radius-pill); padding: 0.75rem 1.1rem; box-shadow: var(--shadow-sm); }
+#library-search { margin: 0; border-radius: var(--radius-control); padding: 0.75rem 1.1rem; box-shadow: var(--shadow-sm); }
 
 .genre-chips {
   display: flex;
@@ -395,7 +396,7 @@ input:focus, button:focus-visible, textarea:focus {
   font-weight: 600;
   padding: 0.4rem 0.85rem;
   border: 1px solid var(--line-dark);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: #fff;
   color: var(--ink);
   cursor: pointer;
@@ -417,7 +418,7 @@ input:focus, button:focus-visible, textarea:focus {
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 0.92rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   padding: 0.75rem 1.2rem;
   border: 1px solid transparent;
   cursor: pointer;
@@ -464,6 +465,23 @@ input:focus, button:focus-visible, textarea:focus {
 
 .link-btn:hover {
   opacity: 0.7;
+}
+
+@media (max-width: 560px) {
+  .entry-card > #btn-toggle-manual,
+  .entry-card > #btn-toggle-lesson {
+    color: var(--primary-dark);
+    line-height: 1.4;
+    margin-top: 0.35rem;
+    padding: 0.75rem 0.1rem;
+    text-decoration: none;
+    width: 100%;
+  }
+  .entry-card > #btn-toggle-lesson {
+    border-top: 1px solid var(--line);
+    margin-top: 0.55rem;
+    padding-top: 1rem;
+  }
 }
 
 .divider {
@@ -517,7 +535,7 @@ input:focus, button:focus-visible, textarea:focus {
   position: absolute;
   inset: 20% 10%;
   border: 2px dashed rgba(255, 255, 255, 0.6);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   pointer-events: none;
 }
 .camera-photo-mode .camera-frame { inset: 8% 16%; }
@@ -532,7 +550,7 @@ input:focus, button:focus-visible, textarea:focus {
   left: 50%;
   transform: translateX(-50%);
   padding: 0.7rem 1.8rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
 }
 
 /* ---------- book card ---------- */
@@ -540,7 +558,7 @@ input:focus, button:focus-visible, textarea:focus {
 .book-card { border-top: 3px solid transparent; border-image: var(--gradient-brand) 1; }
 .quick-book-signal {
   align-items: center;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   display: flex;
   gap: 0.65rem;
   margin-top: 0.65rem;
@@ -784,7 +802,7 @@ input:focus, button:focus-visible, textarea:focus {
   width: 100%;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: #fff;
   color: var(--ink);
   cursor: pointer;
@@ -849,7 +867,7 @@ input:focus, button:focus-visible, textarea:focus {
   display: inline-block;
   padding: 0.4rem 0.85rem;
   border: 1px solid var(--line-dark);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--primary-dark);
@@ -987,12 +1005,12 @@ input:focus, button:focus-visible, textarea:focus {
 .public-book-section li { line-height: 1.55; margin-top: 0.45rem; }
 .public-book-section a { color: var(--primary-dark); }
 .public-category-grid { display: grid; gap: 0.6rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.public-category { background: var(--teal-soft); border-radius: 8px; padding: 0.75rem; }
+.public-category { background: var(--teal-soft); border-radius: var(--radius-control); padding: 0.75rem; }
 .public-category strong, .public-category span { display: block; }
 .public-category strong { font-size: 0.82rem; }
 .public-category span { color: var(--teal-dark); font-size: 0.78rem; font-weight: 700; margin-top: 0.2rem; text-transform: capitalize; }
 .public-category p { font-size: 0.78rem; line-height: 1.4; margin: 0.35rem 0 0; }
-.public-book-caveat { background: var(--alert-soft); border-radius: 8px; line-height: 1.5; margin: 1.5rem 0 0; padding: 0.85rem; }
+.public-book-caveat { background: var(--alert-soft); border-radius: var(--radius-control); line-height: 1.5; margin: 1.5rem 0 0; padding: 0.85rem; }
 .public-book-disclaimer { color: var(--ink-muted); font-size: 0.8rem; line-height: 1.5; margin: 1.5rem 0; }
 .public-book-cta { text-decoration: none; }
 .public-guide-link {
@@ -1129,7 +1147,7 @@ input:focus, button:focus-visible, textarea:focus {
   font-family: var(--font-body);
   font-size: 0.88rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   padding: 0.65rem;
   margin-top: 0.6rem;
   resize: vertical;
@@ -1569,6 +1587,45 @@ input:focus, button:focus-visible, textarea:focus {
   }
   .tab.active { color: var(--teal); }
   .tab-icon { width: 22px; height: 22px; }
+}
+
+@media (max-width: 560px) {
+  #form-isbn .input-row,
+  #form-title .input-row,
+  #form-lesson .input-row {
+    align-items: stretch;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0;
+  }
+  #form-isbn .input-row:focus-within,
+  #form-title .input-row:focus-within,
+  #form-lesson .input-row:focus-within {
+    border-color: transparent;
+    box-shadow: none;
+  }
+  #form-isbn .input-row input,
+  #form-title .input-row input,
+  #form-lesson .input-row input,
+  #form-isbn .input-row button,
+  #form-title .input-row button,
+  #form-lesson .input-row button {
+    flex: none;
+    width: 100%;
+  }
+  #form-isbn .input-row input,
+  #form-title .input-row input,
+  #form-lesson .input-row input {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    box-shadow: var(--shadow-sm);
+    padding: 0.65rem 0.85rem;
+  }
 }
 
 @media (max-width: 420px) {

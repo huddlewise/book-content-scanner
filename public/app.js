@@ -544,7 +544,7 @@ async function captureBarcode() {
 document.getElementById('btn-toggle-manual').addEventListener('click', (e) => {
   document.getElementById('form-title').classList.toggle('hidden');
   const nowVisible = !document.getElementById('form-title').classList.contains('hidden');
-  e.target.textContent = nowVisible ? 'Hide title search' : "Can't find a barcode? Search by title instead";
+  e.target.textContent = nowVisible ? 'Close title search' : 'Search by title instead';
 });
 
 document.getElementById('form-isbn').addEventListener('submit', (e) => {
@@ -563,7 +563,7 @@ document.getElementById('form-title').addEventListener('submit', (e) => {
 document.getElementById('btn-toggle-lesson').addEventListener('click', (e) => {
   document.getElementById('form-lesson').classList.toggle('hidden');
   const nowVisible = !document.getElementById('form-lesson').classList.contains('hidden');
-  e.target.textContent = nowVisible ? 'Hide theme or lesson search' : 'Search by theme or mental-model lesson';
+  e.target.textContent = nowVisible ? 'Close theme search' : 'Search by theme or lesson';
 });
 
 document.getElementById('form-lesson').addEventListener('submit', async (e) => {
