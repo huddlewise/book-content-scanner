@@ -33,10 +33,10 @@ async function loadBrand() {
 
 function applyBrand(brand) {
   document.title = brand.shortName || brand.name || 'Deliberate';
-  document.documentElement.style.setProperty('--primary', brand.primaryColor || '#315A43');
-  document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#244634');
-  document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#EEF1EB');
-  document.documentElement.style.setProperty('--gradient-brand', brand.gradient || '#315A43');
+  document.documentElement.style.setProperty('--primary', brand.primaryColor || '#C2B1D5');
+  document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#69577F');
+  document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#F5F0F8');
+  document.documentElement.style.setProperty('--gradient-brand', brand.gradient || '#C2B1D5');
 
   const nameEl = document.getElementById('brand-name');
   if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'Deliberate';

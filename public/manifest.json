@@ -4,8 +4,8 @@
   "description": "Making every book knowable before kids read it",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAF7F2",
-  "theme_color": "#315A43",
+  "background_color": "#FBF8F2",
+  "theme_color": "#C2B1D5",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

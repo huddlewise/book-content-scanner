@@ -38,10 +38,10 @@ const DEFAULT_BRAND = {
   name: 'Deliberate',
   shortName: 'Deliberate',
   tagline: 'Making every book knowable before kids read it',
-  primaryColor: '#315A43',
-  primaryDark: '#244634',
-  primarySoft: '#EEF1EB',
-  gradient: '#315A43',
+  primaryColor: '#C2B1D5',
+  primaryDark: '#69577F',
+  primarySoft: '#F5F0F8',
+  gradient: '#C2B1D5',
   supportEmail: '',
   poweredBy: '',
 };
@@ -409,29 +409,29 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root { --bg: #FAF7F2; --surface: #FFFCF8; --ink: #1A1A1A; --muted: #5A5146; --border: #D8CFC0; --primary: #315A43 !important; --primary-dark: #244634; --font-display: 'Fraunces', serif; --font-body: 'Work Sans', sans-serif; }
+  :root { --bg: #FBF8F2; --surface: #FFFCF8; --ink: #1A1A1A; --muted: #5A5146; --border: #D8CFC0; --primary: #C2B1D5 !important; --primary-dark: #69577F; --primary-ink: #1A1A1A; --on-primary-hover: #FBF8F2; --font-display: 'Fraunces', serif; --font-body: 'Work Sans', sans-serif; }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
     background: var(--bg); color: var(--ink); font-family: var(--font-body); padding: 1rem; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: min(92vw, 24rem);
     box-shadow: 0 12px 28px rgba(55,42,24,0.12); border-top: 3px solid var(--primary); }
   .brand-mark { width: 34px; height: 34px; border-radius: 14px; background: var(--primary);
     box-shadow: 0 4px 12px rgba(23,56,43,0.16); display: flex; align-items: center; justify-content: center; margin-bottom: 0.9rem; }
-  .brand-mark svg { width: 18px; height: 18px; stroke: var(--bg); }
+  .brand-mark svg { width: 18px; height: 18px; stroke: var(--primary-ink); }
   .brand-logo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
   h1 { margin: 0 0 0.3rem; font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; color: var(--ink); letter-spacing: 0; }
-  h1 span { color: var(--primary); }
+  h1 span { color: var(--primary-dark); }
   p.sub { margin: 0 0 1.3rem; color: var(--muted); font-size: 0.9rem; font-family: var(--font-body); }
   input { width: 100%; box-sizing: border-box; padding: 0.7rem 0.85rem; border: 1px solid var(--border); background: var(--surface); color: var(--ink);
     border-radius: 11px; font-size: 1rem; margin-bottom: 0.8rem; font-family: var(--font-body); }
-  input:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+  input:focus { outline: 2px solid var(--primary-dark); border-color: var(--primary-dark); }
   button { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 11px; background: var(--primary);
-    color: var(--bg); font-size: 1rem; font-weight: 700; cursor: pointer; font-family: var(--font-body); }
-  button:hover { background: var(--primary-dark); }
+    color: var(--primary-ink); font-size: 1rem; font-weight: 700; cursor: pointer; font-family: var(--font-body); }
+  button:hover { background: var(--primary-dark); color: var(--on-primary-hover); }
   #error { color: #d9382a; font-size: 0.85rem; min-height: 1.1rem; margin-top: 0.6rem; }
   .toggle { text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--muted); }
-  .toggle button { all: unset; color: var(--primary); font-weight: 700; cursor: pointer; font-family: var(--font-body); font-size: inherit; }
+  .toggle button { all: unset; color: var(--primary-dark); font-weight: 700; cursor: pointer; font-family: var(--font-body); font-size: inherit; }
   .legal-consent { font-size: 0.78rem; color: var(--muted); text-align: center; margin: 0.9rem 0 0; }
-  .legal-consent a { color: var(--primary); }
+  .legal-consent a { color: var(--primary-dark); }
   .hidden { display: none; }
 </style>
 </head>
@@ -472,8 +472,8 @@ const AUTH_PAGE_HTML = `<!doctype html>
         if (!res.ok) return;
         activeBrand = Object.assign(activeBrand, await res.json());
         document.title = activeBrand.shortName || activeBrand.name || 'Deliberate';
-        document.documentElement.style.setProperty('--primary', activeBrand.primaryColor || '#315A43');
-        document.documentElement.style.setProperty('--gradient-brand', activeBrand.gradient || '#315A43');
+        document.documentElement.style.setProperty('--primary', activeBrand.primaryColor || '#C2B1D5');
+        document.documentElement.style.setProperty('--gradient-brand', activeBrand.gradient || '#C2B1D5');
         document.getElementById('brand-name').textContent = activeBrand.shortName || activeBrand.name || 'Deliberate';
         const logo = document.getElementById('brand-logo');
         const icon = document.getElementById('brand-default-icon');
@@ -686,13 +686,13 @@ function passwordResetEmail(resetUrl) {
       'Deliberate - Making every book knowable before kids read it',
     ].join('\n'),
     html: `<!doctype html>
-<html lang="en"><body style="margin:0;padding:24px;background:#FAF7F2;font-family:'Work Sans',Arial,sans-serif;color:#1A1A1A;">
+<html lang="en"><body style="margin:0;padding:24px;background:#FBF8F2;font-family:'Work Sans',Arial,sans-serif;color:#1A1A1A;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;margin:0 auto;background:#FFFCF8;border-radius:16px;padding:32px;">
     <tr><td>
-      <p style="font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;margin:0 0 24px;">Kin<span style="color:#315A43;">Read</span></p>
+      <p style="font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;margin:0 0 24px;">Kin<span style="color:#69577F;">Read</span></p>
       <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your Deliberate account.</p>
       <p style="margin:0 0 24px;">
-        <a href="${resetUrl}" style="display:inline-block;background:#315A43;color:#FAF7F2;text-decoration:none;font-weight:700;padding:12px 24px;border:1px solid #D8CFC0;border-radius:11px;">Choose a new password</a>
+        <a href="${resetUrl}" style="display:inline-block;background:#C2B1D5;color:#1A1A1A;text-decoration:none;font-weight:700;padding:12px 24px;border:1px solid #D8CFC0;border-radius:11px;">Choose a new password</a>
       </p>
       <p style="margin:0 0 16px;line-height:1.6;font-size:0.9rem;color:#5A5146;">This link is valid for one hour. If the button doesn't work, paste this into your browser:<br /><span style="word-break:break-all;">${resetUrl}</span></p>
       <p style="margin:0;line-height:1.6;font-size:0.9rem;color:#5A5146;">If this wasn't you, you can safely ignore this email &mdash; your password won't change.</p>
@@ -828,7 +828,7 @@ function publicBookPage(book, analysis, canonicalUrl) {
   <title>${escapePublicHtml(book.title)} content guide | Deliberate</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=soft-pine" />
+  <link rel="stylesheet" href="/style.css?v=lavender" />
 </head>
 <body>
   <main class="public-book-page">
