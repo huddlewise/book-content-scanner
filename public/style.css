@@ -35,7 +35,7 @@
   --shadow-card: 0 2px 8px rgba(55, 42, 24, 0.05), 0 10px 24px rgba(55, 42, 24, 0.06);
   --shadow-card-hover: 0 12px 28px rgba(55, 42, 24, 0.12);
   --shadow-glow: 0 6px 18px rgba(105, 87, 127, 0.16);
-  --font-display: "Fraunces", serif;
+  --font-display: "Manrope", sans-serif;
   --font-body: "Work Sans", sans-serif;
 }
 
@@ -1432,7 +1432,7 @@ input:focus, button:focus-visible, textarea:focus {
 }
 .verdict-dot-row .verdict-dot { border-radius: 0; }
 .verdict-dot-row .verdict-dot.status-ok { background: var(--primary); color: var(--primary-ink); }
-.verdict-dot.status-review { background: var(--stamp-amber); }
+.verdict-dot.status-review { background: #D2B05F; color: var(--ink); }
 .verdict-dot.status-avoid { background: var(--stamp-red); }
 
 /* ---------- severity key / decision guide ---------- */
