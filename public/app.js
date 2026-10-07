@@ -11,7 +11,7 @@ let pendingCoverDetails = null;
 let kidsCache = [];
 let thresholdsCache = {};
 let affiliateConfig = null;
-let activeBrand = { name: 'Deliberate', shortName: 'Deliberate', tagline: 'Know the book before you say yes.' };
+let activeBrand = { name: 'Deliberate', shortName: 'Deliberate', tagline: 'Making every book knowable before kids read it' };
 
 loadBrand();
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
@@ -33,15 +33,15 @@ async function loadBrand() {
 
 function applyBrand(brand) {
   document.title = brand.shortName || brand.name || 'Deliberate';
-  document.documentElement.style.setProperty('--primary', brand.primaryColor || '#00a99d');
-  document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#08756f');
-  document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#d7f3ee');
-  document.documentElement.style.setProperty('--gradient-brand', brand.gradient || 'linear-gradient(135deg, #07534f 0%, #008f86 48%, #55d7c2 100%)');
+  document.documentElement.style.setProperty('--primary', brand.primaryColor || '#315A43');
+  document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#244634');
+  document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#EEF1EB');
+  document.documentElement.style.setProperty('--gradient-brand', brand.gradient || '#315A43');
 
   const nameEl = document.getElementById('brand-name');
   if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'Deliberate';
   const taglineEl = document.getElementById('brand-tagline');
-  if (taglineEl) taglineEl.textContent = brand.tagline || 'Know the book before you say yes.';
+  if (taglineEl) taglineEl.textContent = brand.tagline || 'Making every book knowable before kids read it';
 
   const logoEl = document.getElementById('brand-logo');
   const defaultIcon = document.getElementById('brand-default-icon');
@@ -542,9 +542,17 @@ async function captureBarcode() {
 
 // ---------- manual entry ----------
 document.getElementById('btn-toggle-manual').addEventListener('click', (e) => {
-  document.getElementById('form-title').classList.toggle('hidden');
-  const nowVisible = !document.getElementById('form-title').classList.contains('hidden');
-  e.target.textContent = nowVisible ? 'Close title search' : 'Search by title instead';
+  const form = document.getElementById('form-title');
+  const nowVisible = form.classList.contains('hidden');
+  const lessonForm = document.getElementById('form-lesson');
+  const lessonButton = document.getElementById('btn-toggle-lesson');
+  lessonForm.classList.add('hidden');
+  lessonButton.setAttribute('aria-expanded', 'false');
+  lessonButton.textContent = 'Search by theme or lesson';
+  form.classList.toggle('hidden', !nowVisible);
+  e.currentTarget.setAttribute('aria-expanded', String(nowVisible));
+  e.currentTarget.textContent = nowVisible ? 'Close title search' : 'Search by title instead';
+  if (nowVisible) document.getElementById('input-title-search').focus();
 });
 
 document.getElementById('form-isbn').addEventListener('submit', (e) => {
@@ -561,9 +569,17 @@ document.getElementById('form-title').addEventListener('submit', (e) => {
 
 // ---------- search by theme, subject, or idea (book discovery) ----------
 document.getElementById('btn-toggle-lesson').addEventListener('click', (e) => {
-  document.getElementById('form-lesson').classList.toggle('hidden');
-  const nowVisible = !document.getElementById('form-lesson').classList.contains('hidden');
-  e.target.textContent = nowVisible ? 'Close theme search' : 'Search by theme or lesson';
+  const form = document.getElementById('form-lesson');
+  const nowVisible = form.classList.contains('hidden');
+  const titleForm = document.getElementById('form-title');
+  const titleButton = document.getElementById('btn-toggle-manual');
+  titleForm.classList.add('hidden');
+  titleButton.setAttribute('aria-expanded', 'false');
+  titleButton.textContent = 'Search by title instead';
+  form.classList.toggle('hidden', !nowVisible);
+  e.currentTarget.setAttribute('aria-expanded', String(nowVisible));
+  e.currentTarget.textContent = nowVisible ? 'Close theme search' : 'Search by theme or lesson';
+  if (nowVisible) document.getElementById('input-lesson').focus();
 });
 
 document.getElementById('form-lesson').addEventListener('submit', async (e) => {

@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Deliberate</title>
-  <meta name="theme-color" content="#078f87" />
+  <meta name="theme-color" content="#315A43" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=square-family-markers" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=soft-pine" />
 </head>
 <body>
   <div class="app">
@@ -20,7 +20,7 @@
         <span class="brand-mark" aria-hidden="true"><img id="brand-logo" class="brand-logo hidden" alt="" /><svg id="brand-default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
         <div>
           <h1 id="brand-name">Deliberate</h1>
-          <p id="brand-tagline" class="app-tagline">Know the book before you say yes.</p>
+          <p id="brand-tagline" class="app-tagline">Making every book knowable before kids read it</p>
         </div>
       </div>
       <div id="account-badge" class="account-menu hidden">
@@ -80,7 +80,7 @@
             </div>
           </form>
 
-          <button id="btn-toggle-manual" class="link-btn">Search by title instead</button>
+          <button id="btn-toggle-manual" class="link-btn" aria-expanded="false" aria-controls="form-title">Search by title instead</button>
 
           <form id="form-title" class="stack hidden">
             <label for="input-title-search">Title (and author, if you know it)</label>
@@ -90,7 +90,7 @@
             </div>
           </form>
 
-          <button id="btn-toggle-lesson" class="link-btn">Search by theme or lesson</button>
+          <button id="btn-toggle-lesson" class="link-btn" aria-expanded="false" aria-controls="form-lesson">Search by theme or lesson</button>
 
           <form id="form-lesson" class="stack hidden">
             <label for="input-lesson">Search by theme or mental-model lesson</label>
