@@ -407,9 +407,9 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root { --bg: #FBF8F2; --surface: #FFFCF8; --ink: #1A1A1A; --muted: #5A5146; --border: #D8CFC0; --primary: #C2B1D5 !important; --primary-dark: #69577F; --primary-ink: #1A1A1A; --on-primary-hover: #FBF8F2; --font-display: 'Outfit', sans-serif; --font-body: 'Work Sans', sans-serif; }
+  :root { --bg: #FBF8F2; --surface: #FFFCF8; --ink: #1A1A1A; --muted: #5A5146; --border: #D8CFC0; --primary: #C2B1D5 !important; --primary-dark: #69577F; --primary-ink: #1A1A1A; --on-primary-hover: #FBF8F2; --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif; --font-mono: 'IBM Plex Mono', monospace; }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
     background: var(--bg); color: var(--ink); font-family: var(--font-body); padding: 1rem; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: min(92vw, 24rem);
@@ -686,10 +686,10 @@ function passwordResetEmail(resetUrl) {
       'Deliberate - Making every book knowable before kids read it',
     ].join('\n'),
     html: `<!doctype html>
-<html lang="en"><body style="margin:0;padding:24px;background:#FBF8F2;font-family:'Work Sans',Arial,sans-serif;color:#1A1A1A;">
+<html lang="en"><body style="margin:0;padding:24px;background:#FBF8F2;font-family:'Archivo',Arial,sans-serif;color:#1A1A1A;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;margin:0 auto;background:#FFFCF8;border-radius:16px;padding:32px;">
     <tr><td>
-      <p style="font-family:'Outfit',sans-serif;font-size:1.35rem;font-weight:700;margin:0 0 24px;">Kin<span style="color:#69577F;">Read</span></p>
+      <p style="font-family:'Archivo',sans-serif;font-size:1.35rem;font-weight:700;margin:0 0 24px;">Kin<span style="color:#69577F;">Read</span></p>
       <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your Deliberate account.</p>
       <p style="margin:0 0 24px;">
         <a href="${resetUrl}" style="display:inline-block;background:#C2B1D5;color:#1A1A1A;text-decoration:none;font-weight:700;padding:12px 24px;border:1px solid #D8CFC0;border-radius:11px;">Choose a new password</a>
@@ -827,8 +827,8 @@ function publicBookPage(book, analysis, canonicalUrl) {
   ${image ? `<meta property="og:image" content="${escapePublicHtml(image)}" />` : ''}
   <title>${escapePublicHtml(book.title)} content guide | Deliberate</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=outfit-display" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css?v=axiom-typography" />
 </head>
 <body>
   <main class="public-book-page">
