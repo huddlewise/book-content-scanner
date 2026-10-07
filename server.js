@@ -828,7 +828,7 @@ function publicBookPage(book, analysis, canonicalUrl) {
   <title>${escapePublicHtml(book.title)} content guide | Deliberate</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=lavender-square-badges" />
+  <link rel="stylesheet" href="/style.css?v=square-kid-initials" />
 </head>
 <body>
   <main class="public-book-page">

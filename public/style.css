@@ -1430,7 +1430,8 @@ input:focus, button:focus-visible, textarea:focus {
   color: var(--ink);
   flex-shrink: 0;
 }
-.verdict-dot.status-ok { background: var(--primary); color: var(--primary-ink); }
+.verdict-dot-row .verdict-dot { border-radius: 0; }
+.verdict-dot-row .verdict-dot.status-ok { background: var(--primary); color: var(--primary-ink); }
 .verdict-dot.status-review { background: var(--stamp-amber); }
 .verdict-dot.status-avoid { background: var(--stamp-red); }
 
