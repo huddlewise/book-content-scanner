@@ -1,4 +1,6 @@
-# Deliberate
+# StorySiv
+
+Know what's in a book before your child does. Built by a child and adolescent psychiatrist.
 
 Scan a book's barcode, understand its plot and content, and get a sourced summary: language, violence, sexual content, substance use, themes/representation, and useful mental models it explores, before deciding whether it is right for your family. Create a free account and everything gets saved to your own private library, so you build up your own reference over time and can pick up where you left off from any device.
 
@@ -97,7 +99,7 @@ Each account's library/kids/thresholds are private to that account. The one exce
 
 ## White-label / organisation pilots
 
-Deliberate can run a co-branded pilot from a single codebase. Copy `data/organizations.example.json` to `data/organizations.json` locally, or add the same JSON to the shared `organizations` state row in Postgres, and send families to `/login?org=<slug>` or `/login?invite=<code>`. New accounts created from that link keep their own private library, kids, thresholds, and notes, but inherit the organisation's brand and paid-access status when configured.
+StorySiv can run a co-branded pilot from a single codebase. Copy `data/organizations.example.json` to `data/organizations.json` locally, or add the same JSON to the shared `organizations` state row in Postgres, and send families to `/login?org=<slug>` or `/login?invite=<code>`. New accounts created from that link keep their own private library, kids, thresholds, and notes, but inherit the organisation's brand and paid-access status when configured.
 
 You can also match by host with `hostnames` or `customDomains`, for example `["books.example.org"]`. Keep organisation configs private because invite codes can grant sponsored access.
 

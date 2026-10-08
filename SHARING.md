@@ -1,6 +1,6 @@
-# Sharing Deliberate with Family & Friends
+# Sharing StorySiv with Family & Friends
 
-This guide covers how to share Deliberate with others while protecting your API key and managing costs.
+This guide covers how to share StorySiv with others while protecting your API key and managing costs.
 
 ## Quick Start for Sharing
 
@@ -35,7 +35,7 @@ Good for showing it to 1-2 people, but the URL expires after 2 hours (or 8 hours
 
 ## Cost Management
 
-Deliberate uses Anthropic's Claude API, which charges per API call:
+StorySiv uses Anthropic's Claude API, which charges per API call:
 
 ### Typical Costs
 
@@ -62,7 +62,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ---
 
-## Who Should Use Deliberate?
+## Who Should Use StorySiv?
 
 ✅ **Parents** deciding on books for kids
 ✅ **Teachers** vetting books for classrooms
@@ -79,15 +79,15 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 - **Accounts:** Everyone who uses a shared deployment creates their own free account (email + password) - each person's library, kids' profiles, and thresholds are private to their account, not shared with other users of the same link
 - **Storage:** With `DATABASE_URL` set, everything lives in your Postgres database; without it, each account's data is JSON files under `data/accounts/<id>/` on that server (lost on redeploy on most hosts)
 - **API calls:** Book titles/ISBNs are sent to Anthropic (Claude) and Google (Books API)
-- **No tracking:** Deliberate doesn't phone home or track usage beyond what's needed to run each account's free-tier analysis quota
+- **No tracking:** StorySiv doesn't phone home or track usage beyond what's needed to run each account's free-tier analysis quota
 
-**For FERPA compliance (schools):** Avoid storing student data in Deliberate. Use it as a tool to research books, but don't save analyses that include student names/IDs.
+**For FERPA compliance (schools):** Avoid storing student data in StorySiv. Use it as a tool to research books, but don't save analyses that include student names/IDs.
 
 ---
 
 ## Technical Requirements for Others
 
-### To use Deliberate:
+### To use StorySiv:
 
 - A web browser (Chrome, Safari, Firefox, Edge, any modern browser)
 - Internet connection
@@ -101,7 +101,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ### For offline use:
 
-- Not supported yet: Deliberate needs internet to search book info
+- Not supported yet: StorySiv needs internet to search book info
 
 ---
 
@@ -122,7 +122,7 @@ Create and manage keys at https://console.anthropic.com/account/api-keys
 
 ### Scenario 3: Classroom (30 Students)
 
-1. Teacher deploys Deliberate
+1. Teacher deploys StorySiv
 2. Each student creates their own free account to research books (5 free analyses/month each)
 3. Each student's saved books stay private to their own account
 4. **Data note:** Keep spending limits low; delete accounts/the deployment after the unit if you don't want the data to persist

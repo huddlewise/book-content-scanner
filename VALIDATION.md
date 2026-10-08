@@ -1,4 +1,4 @@
-# Deliberate Validation Checklist
+# StorySiv Validation Checklist
 
 Use this checklist before sharing a deployment or demonstrating a new release. Record the date, environment, browser/device, and any failing step.
 

@@ -1,7 +1,7 @@
 {
-  "name": "Deliberate",
-  "short_name": "Deliberate",
-  "description": "Making every book knowable before kids read it",
+  "name": "StorySiv",
+  "short_name": "StorySiv",
+  "description": "Know what's in a book before your child does.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FBF8F2",

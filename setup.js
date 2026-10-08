@@ -27,7 +27,7 @@ async function main() {
     return;
   }
 
-  console.log('\nDeliberate setup');
+  console.log('\nStorySiv setup');
   console.log('--------------');
   console.log('You need a free Anthropic API key to run analyses.');
   console.log('Get one at https://console.anthropic.com  (Settings -> API Keys)\n');

@@ -35,9 +35,9 @@ const DEFAULT_THRESHOLDS = {
 };
 
 const DEFAULT_BRAND = {
-  name: 'Deliberate',
-  shortName: 'Deliberate',
-  tagline: 'Making every book knowable before kids read it',
+  name: 'StorySiv',
+  shortName: 'StorySiv',
+  tagline: "Know what's in a book before your child does.",
   primaryColor: '#C2B1D5',
   primaryDark: '#69577F',
   primarySoft: '#F5F0F8',
@@ -69,7 +69,7 @@ async function syncAccountFromSubscription(subscription) {
     || candidate.stripeCustomerId === subscription.customer
   ));
   if (!account) {
-    console.warn(`Stripe subscription ${subscription.id} could not be matched to a Deliberate account.`);
+    console.warn(`Stripe subscription ${subscription.id} could not be matched to a StorySiv account.`);
     return;
   }
 
@@ -300,7 +300,7 @@ function organizationBrand(organization) {
     gradient: gradient || DEFAULT_BRAND.gradient,
     logoUrl: safePublicUrl(organization.logoUrl),
     supportEmail: isValidEmail(organization.supportEmail) ? organization.supportEmail.trim().toLowerCase() : '',
-    poweredBy: organization.showPoweredBy === false ? '' : 'Deliberate',
+    poweredBy: organization.showPoweredBy === false ? '' : 'StorySiv',
     organization: {
       id: organization.id,
       slug: organization.slug,
@@ -363,7 +363,7 @@ async function sendEmail({ to, subject, html, text }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'Deliberate <onboarding@resend.dev>',
+        from: process.env.RESEND_FROM_EMAIL || 'StorySiv <onboarding@resend.dev>',
         to,
         subject,
         html,
@@ -403,7 +403,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Deliberate</title>
+<title>StorySiv</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -418,6 +418,8 @@ const AUTH_PAGE_HTML = `<!doctype html>
     box-shadow: 0 4px 12px rgba(23,56,43,0.16); display: flex; align-items: center; justify-content: center; margin-bottom: 0.9rem; }
   .brand-mark svg { width: 18px; height: 18px; stroke: var(--primary-ink); }
   .brand-logo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+  .brand-tagline { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
+  .brand-attribution { margin: 0.15rem 0 1.3rem; color: var(--muted); font-size: 0.72rem; line-height: 1.4; }
   h1 { margin: 0 0 0.3rem; font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; color: var(--ink); letter-spacing: 0; }
   h1 span { color: var(--primary-dark); }
   p.sub { margin: 0 0 1.3rem; color: var(--muted); font-size: 0.9rem; font-family: var(--font-body); }
@@ -438,7 +440,9 @@ const AUTH_PAGE_HTML = `<!doctype html>
 <body>
   <form class="card" id="auth-form">
     <span class="brand-mark" aria-hidden="true"><img id="brand-logo" class="brand-logo hidden" alt="" /><svg id="brand-default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
-    <h1 id="brand-name">Deliberate</h1>
+    <h1 id="brand-name">StorySiv</h1>
+    <p class="brand-tagline" id="brand-tagline">Know what's in a book before your child does.</p>
+    <p class="brand-attribution">Built by a child and adolescent psychiatrist.</p>
     <p class="sub" id="auth-sub">Sign in to your account.</p>
     <input id="email" type="email" placeholder="Email" autocomplete="email" autofocus required />
     <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
@@ -461,7 +465,7 @@ const AUTH_PAGE_HTML = `<!doctype html>
   </form>
   <script>
     let mode = 'login';
-    let activeBrand = { name: 'Deliberate', shortName: 'Deliberate' };
+    let activeBrand = { name: 'StorySiv', shortName: 'StorySiv', tagline: "Know what's in a book before your child does." };
     const form = document.getElementById('auth-form');
     const sub = document.getElementById('auth-sub');
     const submitBtn = document.getElementById('auth-submit');
@@ -471,10 +475,11 @@ const AUTH_PAGE_HTML = `<!doctype html>
         const res = await fetch('/api/brand' + window.location.search);
         if (!res.ok) return;
         activeBrand = Object.assign(activeBrand, await res.json());
-        document.title = activeBrand.shortName || activeBrand.name || 'Deliberate';
+        document.title = activeBrand.shortName || activeBrand.name || 'StorySiv';
         document.documentElement.style.setProperty('--primary', activeBrand.primaryColor || '#C2B1D5');
         document.documentElement.style.setProperty('--gradient-brand', activeBrand.gradient || '#C2B1D5');
-        document.getElementById('brand-name').textContent = activeBrand.shortName || activeBrand.name || 'Deliberate';
+        document.getElementById('brand-name').textContent = activeBrand.shortName || activeBrand.name || 'StorySiv';
+        document.getElementById('brand-tagline').textContent = activeBrand.tagline || "Know what's in a book before your child does.";
         const logo = document.getElementById('brand-logo');
         const icon = document.getElementById('brand-default-icon');
         if (activeBrand.logoUrl && logo && icon) {
@@ -482,13 +487,13 @@ const AUTH_PAGE_HTML = `<!doctype html>
           logo.classList.remove('hidden');
           icon.classList.add('hidden');
         }
-        if (mode === 'signup') sub.textContent = 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'Deliberate') + ' account.';
+        if (mode === 'signup') sub.textContent = 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'StorySiv') + ' account.';
       } catch {}
     }
     loadBrand();
     function toggleMode() {
       mode = mode === 'login' ? 'signup' : 'login';
-      sub.textContent = mode === 'login' ? 'Sign in to your account.' : 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'Deliberate') + ' account.';
+      sub.textContent = mode === 'login' ? 'Sign in to your account.' : 'Create your free ' + (activeBrand.shortName || activeBrand.name || 'StorySiv') + ' account.';
       submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
       document.getElementById('legal-consent').style.display = mode === 'signup' ? 'block' : 'none';
       document.getElementById('forgot-toggle').style.display = mode === 'login' ? 'block' : 'none';
@@ -674,23 +679,23 @@ function appBaseUrl(req) {
 
 function passwordResetEmail(resetUrl) {
   return {
-    subject: 'Reset your Deliberate password',
+    subject: 'Reset your StorySiv password',
     text: [
-      'Someone requested a password reset for your Deliberate account.',
+      'Someone requested a password reset for your StorySiv account.',
       '',
       'Choose a new password using the link below (valid for 1 hour):',
       resetUrl,
       '',
       "If this wasn't you, you can safely ignore this email - your password won't change.",
       '',
-      'Deliberate - Making every book knowable before kids read it',
+      "StorySiv - Know what's in a book before your child does.",
     ].join('\n'),
     html: `<!doctype html>
 <html lang="en"><body style="margin:0;padding:24px;background:#FBF8F2;font-family:'Archivo',Arial,sans-serif;color:#1A1A1A;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;margin:0 auto;background:#FFFCF8;border-radius:16px;padding:32px;">
     <tr><td>
       <p style="font-family:'Archivo',sans-serif;font-size:1.35rem;font-weight:700;margin:0 0 24px;">Kin<span style="color:#69577F;">Read</span></p>
-      <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your Deliberate account.</p>
+      <p style="margin:0 0 16px;line-height:1.6;">Someone requested a password reset for your StorySiv account.</p>
       <p style="margin:0 0 24px;">
         <a href="${resetUrl}" style="display:inline-block;background:#C2B1D5;color:#1A1A1A;text-decoration:none;font-weight:700;padding:12px 24px;border:1px solid #D8CFC0;border-radius:11px;">Choose a new password</a>
       </p>
@@ -811,7 +816,7 @@ function publicBookPage(book, analysis, canonicalUrl) {
   }).filter(Boolean).join('');
   const byline = (book.authors || []).filter(Boolean).join(', ');
   const image = safePublicUrl(book.thumbnail);
-  const description = analysis.summary || `A Deliberate content overview for ${book.title}.`;
+  const description = analysis.summary || `A StorySiv content overview for ${book.title}.`;
 
   return `<!doctype html>
 <html lang="en">
@@ -821,18 +826,18 @@ function publicBookPage(book, analysis, canonicalUrl) {
   <meta name="description" content="${escapePublicHtml(description)}" />
   <link rel="canonical" href="${escapePublicHtml(canonicalUrl)}" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="${escapePublicHtml(book.title)} content guide | Deliberate" />
+  <meta property="og:title" content="${escapePublicHtml(book.title)} content guide | StorySiv" />
   <meta property="og:description" content="${escapePublicHtml(description)}" />
   <meta property="og:url" content="${escapePublicHtml(canonicalUrl)}" />
   ${image ? `<meta property="og:image" content="${escapePublicHtml(image)}" />` : ''}
-  <title>${escapePublicHtml(book.title)} content guide | Deliberate</title>
+  <title>${escapePublicHtml(book.title)} content guide | StorySiv</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css?v=axiom-typography" />
 </head>
 <body>
   <main class="public-book-page">
-    <a class="back-link" href="/login">Deliberate</a>
+    <a class="back-link" href="/login">StorySiv</a>
     <article class="public-book-card">
       <header class="public-book-header">
         ${image ? `<img src="${escapePublicHtml(image)}" alt="Cover of ${escapePublicHtml(book.title)}" />` : ''}
@@ -848,7 +853,7 @@ function publicBookPage(book, analysis, canonicalUrl) {
       ${models ? `<section class="public-book-section"><h2>Ways of thinking this story explores</h2><ul>${models}</ul></section>` : ''}
       ${analysis.caveat ? `<p class="public-book-caveat">${escapePublicHtml(analysis.caveat)}</p>` : ''}
       ${sources ? `<section class="public-book-section"><h2>Sources</h2><ul class="sources">${sources}</ul></section>` : ''}
-      <p class="public-book-disclaimer">This is a shared book analysis, not a family verdict. Deliberate keeps individual children, family settings, library entries, and notes private.</p>
+      <p class="public-book-disclaimer">This is a shared book analysis, not a family verdict. StorySiv keeps individual children, family settings, library entries, and notes private.</p>
       <a class="btn btn-primary public-book-cta" href="/login">Check this book for your family</a>
     </article>
   </main>
@@ -862,7 +867,7 @@ app.get('/book/:isbn', async (req, res) => {
   const cache = await readAnalysisCache();
   const cachedAnalysis = cache[`isbn:${isbn.toLowerCase()}`];
   if (!cachedAnalysis?.identified && cachedAnalysis?.identified !== undefined) return res.status(404).send('Book not found.');
-  if (!cachedAnalysis) return res.status(404).send('This book has not been analysed by Deliberate yet.');
+  if (!cachedAnalysis) return res.status(404).send('This book has not been analysed by StorySiv yet.');
 
   const { publicBook, ...analysis } = cachedAnalysis;
   const book = await publicBookMetadata(isbn, publicBook);
@@ -1198,7 +1203,7 @@ async function checkAndConsumeAnalysisQuota(accountId) {
     await writeAccounts(accounts);
     return {
       ok: false,
-      error: `You've used your ${FREE_TIER_MONTHLY_LIMIT} free analyses this month. Upgrade to Deliberate Family for unlimited analyses.`,
+      error: `You've used your ${FREE_TIER_MONTHLY_LIMIT} free analyses this month. Upgrade to StorySiv Family for unlimited analyses.`,
       quotaResetsOn: currentPeriodEnd(),
     };
   }
@@ -1921,7 +1926,7 @@ const PORT = process.env.PORT || 3000;
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Deliberate running at http://localhost:${PORT}`);
+      console.log(`StorySiv running at http://localhost:${PORT}`);
       if (!anthropic) {
         console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
       }
@@ -1932,7 +1937,7 @@ initializeDatabase()
     pool?.end().catch(() => {});
     pool = null;
     app.listen(PORT, () => {
-      console.log(`Deliberate running at http://localhost:${PORT}`);
+      console.log(`StorySiv running at http://localhost:${PORT}`);
       if (!anthropic) {
         console.warn('WARNING: ANTHROPIC_API_KEY not set - content analysis will not work until you add one to .env');
       }

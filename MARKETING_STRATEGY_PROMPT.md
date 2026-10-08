@@ -1,3 +1,3 @@
-# Deliberate Marketing Strategy Prompt
+# StorySiv Marketing Strategy Prompt
 
 Copy everything below 

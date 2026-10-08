@@ -1,6 +1,6 @@
-# Deploying Deliberate
+# Deploying StorySiv
 
-This guide covers different ways to deploy Deliberate so you and others can access it from anywhere with HTTPS (required for camera access on other devices).
+This guide covers different ways to deploy StorySiv so you and others can access it from anywhere with HTTPS (required for camera access on other devices).
 
 ## Environment Variables
 
@@ -11,13 +11,13 @@ This guide covers different ways to deploy Deliberate so you and others can acce
 | `GOOGLE_BOOKS_API_KEY` | Recommended | Avoids Google Books rate-limiting (~100 lookups/day without it) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Optional | Owner credentials with unlimited analyses and lesson searches; the owner account is created on first login if needed |
 | `DATABASE_URL` | Recommended for real customers | A Postgres connection string. Without it, accounts and libraries are stored as JSON files on disk - fine for local use, but most cloud hosts wipe local disk on every redeploy, which would delete every customer's account and library |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Required in production | Needed for password reset emails. `RESEND_FROM_EMAIL` must be a verified sender in your Resend account (for example `Deliberate <noreply@yourdomain.com>`). |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Required in production | Needed for password reset emails. `RESEND_FROM_EMAIL` must be a verified sender in your Resend account (for example `StorySiv <noreply@yourdomain.com>`). |
 | `APP_BASE_URL` | Recommended in production | Your deployment's public URL, e.g. `https://book-content-scanner.onrender.com`. Password reset links are built from it. Without it the link falls back to the request's `Host` header, which a malicious request can spoof to point the reset link at another site. |
 | `SENTRY_DSN` | Optional | Server-side error tracking. Create a Node.js project in Sentry and add its DSN in the hosting dashboard. Leave blank to disable Sentry. |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` | Optional | Only needed once you're ready to accept real subscription payments |
 | `AMAZON_ASSOCIATE_TAG`, `AMAZON_DOMAIN`, `BOOKSHOP_AFFILIATE_ID` | Optional | Referral tags for the "Where to get it" links on each analysis. Without them the Amazon link still appears (untagged, no commission notice) and the Bookshop.org link is hidden. `AMAZON_DOMAIN` defaults to `www.amazon.com` - set it to your local storefront, e.g. `www.amazon.com.au` |
 
-Deliberate now requires every visitor to sign up for a free account (email + password) - there's no more single shared family password. Each account gets its own private library, kid profiles, and thresholds, plus 5 free content analyses a month. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the owner account before deployment; passwords cannot be recovered from the stored hashes.
+StorySiv now requires every visitor to sign up for a free account (email + password) - there's no more single shared family password. Each account gets its own private library, kid profiles, and thresholds, plus 5 free content analyses a month. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the owner account before deployment; passwords cannot be recovered from the stored hashes.
 
 ## Local Development
 
@@ -47,7 +47,7 @@ Open `http://localhost:3000` in your browser. Camera works fine locally.
    - `SESSION_SECRET` = a random 64-character string (e.g. run `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` locally and paste the output)
    - `DATABASE_URL` = a Render Postgres instance's connection string (add one from Render's dashboard - free tier available), so customer accounts survive redeploys
    - `RESEND_API_KEY` = your Resend API key for password-reset emails
-   - `RESEND_FROM_EMAIL` = a verified sender like `Deliberate <noreply@yourdomain.com>`
+   - `RESEND_FROM_EMAIL` = a verified sender like `StorySiv <noreply@yourdomain.com>`
    - `NODE_ENV` = production
 5. Deploy
 

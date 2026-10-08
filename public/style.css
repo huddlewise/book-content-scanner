@@ -224,6 +224,14 @@ body {
   max-width: 22rem;
 }
 
+.brand-attribution {
+  color: var(--ink-muted);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  margin: 0.15rem 0 0;
+}
+
 .tabs {
   display: flex;
   gap: 1.4rem;

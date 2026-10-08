@@ -11,7 +11,7 @@ let pendingCoverDetails = null;
 let kidsCache = [];
 let thresholdsCache = {};
 let affiliateConfig = null;
-let activeBrand = { name: 'Deliberate', shortName: 'Deliberate', tagline: 'Making every book knowable before kids read it' };
+let activeBrand = { name: 'StorySiv', shortName: 'StorySiv', tagline: "Know what's in a book before your child does." };
 
 loadBrand();
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
@@ -32,16 +32,16 @@ async function loadBrand() {
 }
 
 function applyBrand(brand) {
-  document.title = brand.shortName || brand.name || 'Deliberate';
+  document.title = brand.shortName || brand.name || 'StorySiv';
   document.documentElement.style.setProperty('--primary', brand.primaryColor || '#C2B1D5');
   document.documentElement.style.setProperty('--primary-dark', brand.primaryDark || '#69577F');
   document.documentElement.style.setProperty('--primary-soft', brand.primarySoft || '#F5F0F8');
   document.documentElement.style.setProperty('--gradient-brand', brand.gradient || '#C2B1D5');
 
   const nameEl = document.getElementById('brand-name');
-  if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'Deliberate';
+  if (nameEl) nameEl.textContent = brand.shortName || brand.name || 'StorySiv';
   const taglineEl = document.getElementById('brand-tagline');
-  if (taglineEl) taglineEl.textContent = brand.tagline || 'Making every book knowable before kids read it';
+  if (taglineEl) taglineEl.textContent = brand.tagline || "Know what's in a book before your child does.";
 
   const logoEl = document.getElementById('brand-logo');
   const defaultIcon = document.getElementById('brand-default-icon');
@@ -53,7 +53,7 @@ function applyBrand(brand) {
 }
 
 function brandName() {
-  return activeBrand.shortName || activeBrand.name || 'Deliberate';
+  return activeBrand.shortName || activeBrand.name || 'StorySiv';
 }
 
 // ---------- account ----------
