@@ -1035,17 +1035,45 @@ function renderMentalModels(models) {
   if (!Array.isArray(models) || models.length === 0) return '';
   const items = models.slice(0, 4).map((model) => {
     if (!model?.name) return '';
+    const more = [
+      model.evidence ? `<p class="mental-model-evidence">${escapeHtml(model.evidence)}</p>` : '',
+      model.caveat ? `<p class="mental-model-caveat">Keep in mind: ${escapeHtml(model.caveat)}</p>` : '',
+    ].join('');
     return `
       <article class="mental-model">
         <h3>${escapeHtml(model.name)}</h3>
-        ${model.evidence ? `<p class="mental-model-evidence">In the story: ${escapeHtml(model.evidence)}</p>` : ''}
-        ${model.takeaway ? `<p>${escapeHtml(model.takeaway)}</p>` : ''}
-        ${model.caveat ? `<p class="mental-model-caveat">Keep in mind: ${escapeHtml(model.caveat)}</p>` : ''}
+        ${model.takeaway ? clampText(model.takeaway) : ''}
+        ${more ? `<details class="tile-more"><summary>In the story${model.caveat ? ' <span class="tile-more-flag">+ caveat</span>' : ''}</summary>${more}</details>` : ''}
       </article>`;
   }).filter(Boolean).join('');
   if (!items) return '';
   return `<section class="mental-models"><p class="card-label">Ways of thinking this story explores</p><div class="tile-grid">${items}</div></section>`;
 }
+
+// Long text shows two lines, then expands on tap - keeps tiles scannable without hiding detail.
+const CLAMP_THRESHOLD = 110;
+function clampText(text, className = '') {
+  const value = String(text ?? '').trim();
+  if (!value) return '';
+  if (value.length <= CLAMP_THRESHOLD) return `<p class="${className}">${escapeHtml(value)}</p>`;
+  return `<p class="clamp ${className}" tabindex="0" role="button" aria-expanded="false" title="Show more">${escapeHtml(value)}</p>`;
+}
+
+function toggleClamp(el) {
+  const open = el.classList.toggle('is-open');
+  el.setAttribute('aria-expanded', String(open));
+}
+
+document.addEventListener('click', (event) => {
+  const el = event.target.closest('.clamp');
+  if (el) toggleClamp(el);
+});
+document.addEventListener('keydown', (event) => {
+  if ((event.key === 'Enter' || event.key === ' ') && event.target.classList?.contains('clamp')) {
+    event.preventDefault();
+    toggleClamp(event.target);
+  }
+});
 
 function ageGuidanceText(ageGuidance) {
   const guidance = String(ageGuidance ?? '').trim();
@@ -1066,9 +1094,13 @@ function renderDiscussionPoints(points, label = 'Conversation starters for paren
     return `
       <article class="discussion-note">
         <h3>${escapeHtml(point.topic)}</h3>
-        ${point.why_it_matters ? `<p>${escapeHtml(point.why_it_matters)}</p>` : ''}
-        ${point.principle ? `<p class="discussion-note-principle">Lens: ${escapeHtml(point.principle)}</p>` : ''}
-        ${point.talking_tip ? `<p class="discussion-note-tip">How to talk about it: ${escapeHtml(point.talking_tip)}</p>` : ''}
+        ${point.talking_tip ? clampText(point.talking_tip, 'discussion-note-tip') : ''}
+        ${point.why_it_matters || point.principle ? `
+          <details class="tile-more">
+            <summary>Why it comes up</summary>
+            ${point.why_it_matters ? `<p>${escapeHtml(point.why_it_matters)}</p>` : ''}
+            ${point.principle ? `<p class="discussion-note-principle">Approach: ${escapeHtml(point.principle)}</p>` : ''}
+          </details>` : ''}
       </article>`;
   }).filter(Boolean).join('');
   return `<section class="discussion-notes"><p class="card-label">${label}</p>${items ? `<div class="tile-grid">${items}</div>` : '<p class="discussion-notes-empty">No specific conversation starter was identified for this book.</p>'}</section>`;
@@ -1083,7 +1115,7 @@ function renderComparableTitles(titles) {
         <span class="comparable-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
         <div>
           <p class="comparable-title-name"><button class="comparable-book-title" data-title="${escapeHtml(t.title)}" data-author="${escapeHtml(t.author || '')}">${escapeHtml(t.title)}</button>${t.author ? ` <span class="muted">- ${escapeHtml(t.author)}</span>` : ''}</p>
-          ${t.why ? `<p class="comparable-title-why">${escapeHtml(t.why)}</p>` : ''}
+          ${t.why ? clampText(t.why, 'comparable-title-why') : ''}
         </div>
       </div>`;
   }).filter(Boolean).join('');
@@ -1184,12 +1216,50 @@ function renderPublicGuideLink(book) {
 
 // Splits the deep dive into tabs so a parent jumps straight to one topic instead of
 // scrolling through every section in a single long column. Empty sections get no tab.
+const SEVERITY_RANK = { mild: 1, moderate: 2, strong: 3 };
+
+// Three-step meter so severity reads at a glance, before any notes.
+function levelMeter(key, level) {
+  if (THEME_KEYS.has(key)) return '';
+  const rank = SEVERITY_RANK[level] || 0;
+  const bars = [1, 2, 3].map((step) => `<span class="${step <= rank ? 'on' : ''}"></span>`).join('');
+  return `<span class="level-meter" aria-hidden="true">${bars}</span>`;
+}
+
+// Flagged categories first (most severe on top), with everything clear folded into one line.
+function renderContentPanel(cats) {
+  const keys = Object.keys(CATEGORY_LABELS);
+  const flagged = keys
+    .filter((key) => cats[key]?.level && cats[key].level !== 'none')
+    .sort((a, b) => (SEVERITY_RANK[cats[b].level] || 0) - (SEVERITY_RANK[cats[a].level] || 0));
+  const clear = keys.filter((key) => !flagged.includes(key));
+
+  const tiles = flagged.map((key) => {
+    const cat = cats[key];
+    return `
+      <div class="stamp ${stampClass(key, cat.level)}">
+        <span class="stamp-category">${CATEGORY_LABELS[key]}</span>
+        <span class="stamp-level-row">${levelMeter(key, cat.level)}<span class="stamp-level">${escapeHtml(displayCategoryLevel(key, cat.level))}</span></span>
+        ${cat.notes ? clampText(cat.notes, 'stamp-notes') : ''}
+      </div>`;
+  }).join('');
+
+  const clearRow = clear.length
+    ? `<p class="content-clear"><span class="content-clear-label">None found</span>${clear.map((key) => `<span class="content-clear-chip">${CATEGORY_LABELS[key]}</span>`).join('')}</p>`
+    : '';
+
+  return `
+    ${renderContentAlert(cats)}
+    ${tiles ? `<div class="stamp-grid">${tiles}</div>` : '<p class="hint">Nothing of note was flagged in any category.</p>'}
+    ${clearRow}`;
+}
+
 function renderAnalysisTabs(panels) {
   const visible = panels.filter((panel) => panel.html && panel.html.trim());
   if (!visible.length) return '';
   const tabs = visible.map((panel, i) => `
     <button type="button" role="tab" class="analysis-tab ${i === 0 ? 'active' : ''}" id="analysis-tab-${panel.id}"
-      aria-controls="analysis-panel-${panel.id}" aria-selected="${i === 0}">${escapeHtml(panel.label)}</button>`).join('');
+      aria-controls="analysis-panel-${panel.id}" aria-selected="${i === 0}">${escapeHtml(panel.label)}${panel.count ? `<span class="analysis-tab-count">${panel.count}</span>` : ''}</button>`).join('');
   const bodies = visible.map((panel, i) => `
     <div class="analysis-panel ${i === 0 ? '' : 'hidden'}" role="tabpanel" id="analysis-panel-${panel.id}"
       aria-labelledby="analysis-tab-${panel.id}">${panel.html}</div>`).join('');
@@ -1214,16 +1284,8 @@ function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
 
-  const stamps = Object.keys(CATEGORY_LABELS).map((key) => {
-    const cat = cats[key] || { level: 'none', notes: '' };
-    const cls = stampClass(key, cat.level);
-    return `
-      <div class="stamp ${cls}">
-        <span class="stamp-category">${CATEGORY_LABELS[key]}</span>
-        <span class="stamp-level">${escapeHtml(displayCategoryLevel(key, cat.level))}</span>
-        ${cat.notes ? `<span class="stamp-notes">${escapeHtml(cat.notes)}</span>` : ''}
-      </div>`;
-  }).join('');
+  const countOf = (items) => (Array.isArray(items) ? items.filter(Boolean).length : 0);
+  const flaggedCount = Object.keys(CATEGORY_LABELS).filter((key) => cats[key]?.level && cats[key].level !== 'none').length;
 
   const sources = (result.sources || []).map((s) => `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || s.url)}</a></li>`).join('');
 
@@ -1243,9 +1305,9 @@ function renderAnalysis(result) {
     <section class="analysis-deep-dive">
       <p class="analysis-section-label">Deep dive</p>
       ${renderAnalysisTabs([
-        { id: 'content', label: 'Content', html: `${renderContentAlert(cats)}<div class="stamp-grid">${stamps}</div>` },
-        { id: 'talk', label: 'Talking points', html: renderDiscussionPoints(result.discussion_points) },
-        { id: 'thinking', label: 'Ways of thinking', html: renderMentalModels(result.mental_models) },
+        { id: 'content', label: 'Content', count: flaggedCount, html: renderContentPanel(cats) },
+        { id: 'talk', label: 'Talking points', count: countOf(result.discussion_points), html: renderDiscussionPoints(result.discussion_points) },
+        { id: 'thinking', label: 'Ways of thinking', count: countOf(result.mental_models), html: renderMentalModels(result.mental_models) },
         { id: 'books', label: 'Similar books', html: renderComparableTitles(result.comparable_titles) + renderSuggestedTitles(result.suggested_titles, currentBook) },
         {
           id: 'sources',
@@ -1428,7 +1490,7 @@ function renderLibrary(entries) {
 
   list.querySelectorAll('.library-item').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-delete') || e.target.closest('a, .comparable-book-title')) return;
+      if (e.target.classList.contains('btn-delete') || e.target.closest('a, .comparable-book-title, .clamp, details')) return;
       el.querySelector('.library-item-detail').classList.toggle('hidden');
     });
   });

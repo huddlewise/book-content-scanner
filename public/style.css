@@ -742,6 +742,93 @@ input:focus, button:focus-visible, textarea:focus {
 .analysis-panel > .content-alert:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
 .analysis-panel > section:last-child { margin-bottom: 0; }
 
+.analysis-tab-count {
+  background: var(--primary-dark);
+  border-radius: var(--radius-pill);
+  color: var(--on-primary-hover);
+  display: inline-block;
+  font-size: 0.68rem;
+  line-height: 1;
+  margin-left: 0.35rem;
+  min-width: 1.1rem;
+  padding: 0.18rem 0.32rem;
+  text-align: center;
+}
+.analysis-tab:not(.active) .analysis-tab-count { background: var(--line-dark); color: var(--ink); }
+
+/* Two-line preview that expands on tap. */
+.clamp {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  cursor: pointer;
+  display: -webkit-box;
+  overflow: hidden;
+  position: relative;
+}
+.clamp.is-open { -webkit-line-clamp: unset; display: block; }
+.clamp:not(.is-open)::after {
+  background: linear-gradient(90deg, transparent, var(--tile-bg, var(--surface)) 40%);
+  bottom: 0;
+  color: var(--primary-dark);
+  content: 'more';
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding-left: 1.6rem;
+  position: absolute;
+  right: 0;
+}
+.clamp:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 2px; }
+
+/* Secondary detail inside a tile, collapsed by default. */
+.tile-more { margin-top: 0.45rem; }
+.tile-more > summary {
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 700;
+  list-style: none;
+}
+.tile-more > summary::-webkit-details-marker { display: none; }
+.tile-more > summary::before { content: '+ '; }
+.tile-more[open] > summary::before { content: '\2212  '; }
+.tile-more-flag { color: var(--stamp-orange); font-weight: 600; }
+
+/* Severity meter + collapsed "none found" row on the Content tab. */
+.stamp-level-row { align-items: center; display: flex; gap: 0.45rem; }
+.level-meter { display: inline-flex; gap: 2px; }
+.level-meter span {
+  background: currentColor;
+  border-radius: 2px;
+  height: 0.55rem;
+  opacity: 0.2;
+  width: 0.9rem;
+}
+.level-meter span.on { opacity: 1; }
+.stamp p.stamp-notes { line-height: 1.4; margin: 0.35rem 0 0; }
+.content-clear {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+}
+.content-clear-label {
+  color: var(--stamp-green);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-right: 0.15rem;
+  text-transform: uppercase;
+}
+.content-clear-chip {
+  background: var(--stamp-green-soft);
+  border-radius: var(--radius-pill);
+  color: var(--stamp-green);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+}
+
 /* Shared card grid for talking points, ways of thinking, and book lists. */
 .tile-grid {
   display: grid;
@@ -1081,7 +1168,7 @@ input:focus, button:focus-visible, textarea:focus {
 .public-book-cta { text-decoration: none; }
 .public-guide-link {
   color: var(--primary-dark);
-  display: inline-block;
+  display: table;
   font-size: 0.85rem;
   font-weight: 700;
   margin: 0.9rem 0 1.1rem;
@@ -1162,11 +1249,11 @@ input:focus, button:focus-visible, textarea:focus {
   display: block;
 }
 
-.stamp-clear { color: var(--stamp-green); background: #e7f6ec; }
-.stamp-mild { color: var(--stamp-amber); background: #fbf1de; }
-.stamp-moderate { color: var(--stamp-orange); background: #fceee0; }
-.stamp-strong { color: var(--stamp-red); background: #fbe7e3; }
-.stamp-info { color: var(--stamp-navy); background: #eaf0fa; }
+.stamp-clear { --tile-bg: #e7f6ec; color: var(--stamp-green); background: var(--tile-bg); }
+.stamp-mild { --tile-bg: #fbf1de; color: var(--stamp-amber); background: var(--tile-bg); }
+.stamp-moderate { --tile-bg: #fceee0; color: var(--stamp-orange); background: var(--tile-bg); }
+.stamp-strong { --tile-bg: #fbe7e3; color: var(--stamp-red); background: var(--tile-bg); }
+.stamp-info { --tile-bg: #eaf0fa; color: var(--stamp-navy); background: var(--tile-bg); }
 
 .analysis-card {
   border-top: 3px solid var(--primary);
