@@ -1475,7 +1475,7 @@ const ANALYSIS_SCHEMA_PROMPT = `Respond with ONLY a single valid JSON object - n
 {
   "identified": true or false,
   "confidence": "high" | "medium" | "low",
-  "summary": "1-3 neutral sentences describing the book and its content overall",
+  "summary": "No more than 2 concise sentences (about 45 words total): explain the basic premise and the most parent-relevant content or theme. Never mention ISBNs, barcodes, edition matching, publishers, publication dates, or how the book was identified.",
   "categories": {
     "sexual_content": { "level": "none" | "mild" | "moderate" | "strong", "notes": "brief, specific, neutral description or empty string" },
     "language": { "level": "none" | "mild" | "moderate" | "strong", "notes": "brief note on swearing/cussing/crude language or empty string" },
@@ -1643,7 +1643,7 @@ ${bookDescriptor}
 
 ${suggestionInstruction}
 
-Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If the story raises meaningful issues a parent may want to talk through with a child, include up to three discussion_points. Base each talking_tip on an appropriate, practical child psychiatry or psychology principle, such as emotion coaching (notice and name feelings), validation before problem-solving, developmentally appropriate perspective-taking, collaborative coping and safety planning, or repair after conflict. Where the story involves belonging, competition, mistaken goals, encouragement, or independence, you may also use an Adlerian lens: belonging and significance, agency within limits, encouragement over praise, and curiosity about the child's private logic. Put the chosen principle in the principle field. Use these frameworks as flexible conversation lenses, not diagnoses or treatment; do not label a child, predict behaviour, give clinical advice, or imply that an Adlerian interpretation is definitive. Write parent-facing guidance in plain, intelligent, restrained UK English. Keep sentences short and clean. State the substantive point directly. Avoid therapy-speak, motivational language, generic social-media phrasing, rhetorical flourishes, and unnecessary hedging. Distinguish what the story shows from what a parent might reasonably discuss. Keep suggestions neutral, practical, culturally respectful, and non-diagnostic; return an empty array when no clear discussion angle stands out. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well. If you cannot confidently identify this exact book, say so in "caveat" and set "identified" to false rather than guessing.
+Write the summary for a parent deciding whether to hand this book to their child. Lead with what happens and the most relevant content or themes, in plain, direct language. Keep it to at most two short sentences and about 45 words total. Do not describe ISBN/barcode lookup, say what an ISBN corresponds to, or narrate edition, publisher, or publication-date details; those are not the parent-facing summary. Keep identification uncertainty in "caveat" and set "identified" to false if you cannot confidently identify the book. Report on: sexual content, coarse language/cussing, violence or scary content, substance use, self-harm or suicide themes (including whether it's a passing mention or a central plot element), LGBTQ+ characters/relationships/themes (reported factually - who and how central, not as a warning), and other notable themes (family structure, disability, race/culture, religion, grief, etc.). Also identify up to four mental models - transferable ways of thinking such as cause and effect, empathy, trade-offs, perseverance, incentives, systems thinking, or recognising unreliable assumptions - that the story genuinely illustrates. Ground each in the book's plot or characters; do not infer lessons from generic genre conventions. Include a caveat when the story presents the model as flawed, incomplete, or harmful. Return an empty array when no model can be supported confidently. If the story raises meaningful issues a parent may want to talk through with a child, include up to three discussion_points. Base each talking_tip on an appropriate, practical child psychiatry or psychology principle, such as emotion coaching (notice and name feelings), validation before problem-solving, developmentally appropriate perspective-taking, collaborative coping and safety planning, or repair after conflict. Where the story involves belonging, competition, mistaken goals, encouragement, or independence, you may also use an Adlerian lens: belonging and significance, agency within limits, encouragement over praise, and curiosity about the child's private logic. Put the chosen principle in the principle field. Use these frameworks as flexible conversation lenses, not diagnoses or treatment; do not label a child, predict behaviour, give clinical advice, or imply that an Adlerian interpretation is definitive. Write parent-facing guidance in plain, intelligent, restrained UK English. Keep sentences short and clean. State the substantive point directly. Avoid therapy-speak, motivational language, generic social-media phrasing, rhetorical flourishes, and unnecessary hedging. Distinguish what the story shows from what a parent might reasonably discuss. Keep suggestions neutral, practical, culturally respectful, and non-diagnostic; return an empty array when no clear discussion angle stands out. Also suggest up to three comparable titles - books a parent has likely already encountered - that are genuinely similar in reading level, tone, or content intensity, so they can quickly calibrate ("if you know X, expect a similar experience"); leave the array empty rather than guessing if nothing fits well.
 
 ${ANALYSIS_SCHEMA_PROMPT}`;
 
@@ -1699,8 +1699,57 @@ ${ANALYSIS_SCHEMA_PROMPT}`;
 
 // ---------- discover books by theme, subject, or idea (search by concept, not title) ----------
 
+const SEVERITY_CONTENT_LEVELS = ['none', 'mild', 'moderate', 'strong'];
+const THEME_CONTENT_LEVELS = ['none', 'minor', 'central'];
+const CONTENT_LEVELS = {
+  sexual_content: SEVERITY_CONTENT_LEVELS,
+  language: SEVERITY_CONTENT_LEVELS,
+  violence: SEVERITY_CONTENT_LEVELS,
+  substance_use: SEVERITY_CONTENT_LEVELS,
+  self_harm_suicide: SEVERITY_CONTENT_LEVELS,
+  lgbtq_content: THEME_CONTENT_LEVELS,
+  other_themes: THEME_CONTENT_LEVELS,
+};
+const LESSON_POOL_LIMIT = 40;
+const LESSON_RESULTS_LIMIT = 5;
+// Below this many unseen, family-fit books in the cached pool, ask Claude for fresh ones.
+const LESSON_MIN_FRESH_RESULTS = 3;
+
 function lessonSearchCacheKey(query) {
   return query.toLowerCase().trim().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Loose key for 'have we suggested this already?' - ignores leading articles and spacing.
+function suggestionTitleKey(title) {
+  return normalizeBookTitle(title).replace(/^(the|a|an) /, '').replace(/ /g, '');
+}
+
+// Mirrors computeVerdict in public/app.js: a level is allowed only if no kid is younger than
+// the age the family set for it. Returns null when there are no kids to judge against.
+function allowedLevelsForFamily(kids, thresholds) {
+  if (!kids.length) return null;
+  return Object.fromEntries(Object.entries(CONTENT_LEVELS).map(([key, levels]) => [
+    key,
+    levels.filter((level) => level === 'none' || kids.every((kid) => {
+      const requiredAge = thresholds[key]?.[level];
+      return !(typeof requiredAge === 'number' && requiredAge > 0 && kid.age < requiredAge);
+    })),
+  ]));
+}
+
+function fitsFamilyLimits(categories, allowed) {
+  if (!allowed) return true;
+  if (!categories) return false; // can't confirm it fits, so don't suggest it
+  return Object.entries(allowed).every(([key, levels]) => levels.includes(categories[key]?.level || 'none'));
+}
+
+function familyLimitsPrompt(kids, allowed) {
+  if (!allowed) return '';
+  const limits = Object.entries(allowed)
+    .filter(([key, levels]) => levels.length < CONTENT_LEVELS[key].length)
+    .map(([key, levels]) => `- ${PUBLIC_CATEGORY_LABELS[key]}: ${levels.join(' or ')} only`);
+  const ages = kids.map((kid) => kid.age).sort((a, b) => a - b).join(', ');
+  return `The books are for a family with children aged ${ages}.${limits.length ? ` Every book must stay within these content limits set by the parent:\n${limits.join('\n')}\nDo not suggest any book that exceeds a limit, even if it fits the theme well.` : ''}`;
 }
 
 app.post('/api/discover-by-lesson', analyzeRateLimit, async (req, res) => {
@@ -1711,26 +1760,57 @@ app.post('/api/discover-by-lesson', analyzeRateLimit, async (req, res) => {
   if (!query || query.trim().length < 3) {
     return res.status(400).json({ error: 'Describe the theme, subject, or idea you\'re looking for.' });
   }
+  const excludeTitles = (Array.isArray(req.body.exclude) ? req.body.exclude : [])
+    .filter((title) => typeof title === 'string' && title.trim())
+    .slice(0, 300);
+  const exclude = new Set(excludeTitles.map(suggestionTitleKey).filter(Boolean));
 
-  const cacheKey = lessonSearchCacheKey(query);
+  const [kids, savedThresholds] = await Promise.all([readKids(req.accountId), readThresholds(req.accountId)]);
+  const allowed = allowedLevelsForFamily(kids, savedThresholds || DEFAULT_THRESHOLDS);
+  // Families with the same limits share a pool of books per query, so repeat searches are free.
+  const cacheKey = `${lessonSearchCacheKey(query)}|${allowed ? JSON.stringify(allowed) : 'any'}`;
   const cache = await readLessonSearchCache();
-  if (cache[cacheKey]) return res.json({ ...cache[cacheKey], cached: true });
+  let pool = Array.isArray(cache[cacheKey]?.books) ? cache[cacheKey].books : [];
+
+  // Prefer a real saved analysis over Claude's quick estimate when judging family fit.
+  const pickBooks = async () => {
+    const analysisCache = await readAnalysisCache();
+    return pool
+      .map((book) => ({
+        ...book,
+        analysisCategories: analysisCache[analysisCacheKey({
+          isbn: book.isbn, title: book.title, authors: book.author ? [book.author] : [],
+        })]?.categories || null,
+      }))
+      .filter((book) => !exclude.has(suggestionTitleKey(book.title)))
+      .filter((book) => fitsFamilyLimits(book.analysisCategories || book.categories, allowed))
+      .slice(0, LESSON_RESULTS_LIMIT);
+  };
+
+  let books = await pickBooks();
+  if (books.length >= LESSON_MIN_FRESH_RESULTS) {
+    return res.json({ books, cached: true, familyFiltered: Boolean(allowed) });
+  }
 
   const quota = await checkAndConsumeAnalysisQuota(req.accountId);
   if (!quota.ok) return res.status(402).json({ error: quota.error, quotaResetsOn: quota.quotaResetsOn });
+
+  const alreadySuggested = [...new Set([...pool.map((book) => book.title), ...excludeTitles])].slice(0, 80);
 
   const prompt = `A parent wants to find children's or young-adult storybooks (real, existing published books - never invent a title) matching the following theme, subject, genre, mental-model lesson, or idea. This may be a plot subject such as murder, mystery, or detectives; a genre such as detective fiction; or a broader lesson such as handling big feelings or seeing two sides of a problem. Interpret the request naturally and recommend books that genuinely fit it through their plot, characters, or reading experience:
 
 "${query.trim()}"
 
-Suggest up to 5 real storybooks that are strong, genuine examples, not just tangentially related. For each, briefly explain how the story illustrates the idea, grounded in specific plot points or character choices, and include an approximate age range. If you can't confidently think of good real examples, return fewer (even zero) rather than inventing titles.
+${familyLimitsPrompt(kids, allowed)}
 
-Respond with ONLY this JSON, no other text: { "books": [ { "title": "...", "author": "...", "ageRange": "...", "why": "..." } ] }`;
+${alreadySuggested.length ? `The parent has already seen these, so do not suggest them again: ${alreadySuggested.join('; ')}. Look beyond the most obvious bestsellers.\n\n` : ''}Suggest up to 6 real storybooks that are strong, genuine examples, not just tangentially related. For each, briefly explain how the story illustrates the idea, grounded in specific plot points or character choices, and include an approximate age range. Assess each book's content level in every category: sexual_content, language, violence, substance_use, and self_harm_suicide use "none" | "mild" | "moderate" | "strong"; lgbtq_content and other_themes use "none" | "minor" | "central". If you can't confidently think of good real examples, or can't assess a book's content with reasonable confidence, return fewer (even zero) rather than guessing.
+
+Respond with ONLY this JSON, no other text: { "books": [ { "title": "...", "author": "...", "ageRange": "...", "why": "...", "categories": { "sexual_content": { "level": "..." }, "language": { "level": "..." }, "violence": { "level": "..." }, "substance_use": { "level": "..." }, "self_harm_suicide": { "level": "..." }, "lgbtq_content": { "level": "..." }, "other_themes": { "level": "..." } } } ] }`;
 
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-5',
-      max_tokens: 4000,
+      max_tokens: 6000,
       tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
       messages: [{ role: 'user', content: prompt }],
     });
@@ -1755,20 +1835,23 @@ Respond with ONLY this JSON, no other text: { "books": [ { "title": "...", "auth
     }
 
     const result = stripCitationArtifacts(parsed);
+    const known = new Set(pool.map((book) => suggestionTitleKey(book.title)));
+    const newBooks = (result.books || []).filter((book) => {
+      const key = suggestionTitleKey(book?.title);
+      if (!key || known.has(key)) return false;
+      known.add(key);
+      return true;
+    });
     // Attach a rating/cover to each suggestion so the list is easier to scan, best-effort only.
-    const analysisCache = await readAnalysisCache();
-    result.books = await Promise.all(
-      (result.books || []).map(async (book) => {
-        const match = await findGoogleBooksMatch(book.title, book.author);
-        const cachedEntry = analysisCache[analysisCacheKey({
-          isbn: match?.isbn, title: book.title, authors: book.author ? [book.author] : [],
-        })];
-        return { ...book, ...match, analysisCategories: cachedEntry?.categories || null };
-      }),
-    );
-    cache[cacheKey] = result;
+    const enriched = await Promise.all(newBooks.map(async (book) => ({
+      ...book, ...(await findGoogleBooksMatch(book.title, book.author)),
+    })));
+    pool = [...pool, ...enriched].slice(-LESSON_POOL_LIMIT);
+    cache[cacheKey] = { books: pool };
     await writeLessonSearchCache(cache);
-    res.json({ ...result, cached: false });
+
+    books = await pickBooks();
+    res.json({ books, cached: false, familyFiltered: Boolean(allowed) });
   } catch (err) {
     console.error('Lesson search error:', err);
     res.status(502).json({ error: 'Could not search for books right now. Try again.' });

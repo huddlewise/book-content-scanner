@@ -16,6 +16,7 @@ let activeBrand = { name: 'StorySiv', shortName: 'StorySiv', tagline: "Know what
 loadBrand();
 loadFamily(); // load kid profiles + thresholds up front so verdicts are ready right after a scan
 loadAccount();
+loadLibrary(); // so suggestions can skip books the family already has saved
 
 // ---------- brand ----------
 async function loadBrand() {
@@ -582,11 +583,48 @@ document.getElementById('btn-toggle-lesson').addEventListener('click', (e) => {
   if (nowVisible) document.getElementById('input-lesson').focus();
 });
 
-document.getElementById('form-lesson').addEventListener('submit', async (e) => {
+// Remembers which books the app has already suggested (and from where), so repeat searches
+// and later analyses surface new titles instead of the same handful every time.
+const SEEN_SUGGESTIONS_KEY = 'seenSuggestions';
+const SEEN_SUGGESTIONS_LIMIT = 200;
+
+function suggestionTitleKey(title) {
+  return String(title || '').toLowerCase().replace(/^(the|a|an)\s+/, '').replace(/[^a-z0-9]+/g, '');
+}
+
+function readSeenSuggestions() {
+  try {
+    return JSON.parse(localStorage.getItem(SEEN_SUGGESTIONS_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberSuggestions(titles, source) {
+  const seen = readSeenSuggestions();
+  titles.forEach((title) => {
+    const key = suggestionTitleKey(title);
+    if (key && !seen[key]) seen[key] = { title, source };
+  });
+  const trimmed = Object.fromEntries(Object.entries(seen).slice(-SEEN_SUGGESTIONS_LIMIT));
+  try {
+    localStorage.setItem(SEEN_SUGGESTIONS_KEY, JSON.stringify(trimmed));
+  } catch {
+    // Storage can be full or disabled - suggestions just won't be de-duplicated.
+  }
+}
+
+function libraryTitleKeys() {
+  return new Set(libraryCache.map((entry) => suggestionTitleKey(entry.title)));
+}
+
+document.getElementById('form-lesson').addEventListener('submit', (e) => {
   e.preventDefault();
   const query = document.getElementById('input-lesson').value.trim();
-  if (!query) return;
+  if (query) searchByLesson(query);
+});
 
+async function searchByLesson(query) {
   hide('lesson-results');
   hide('book-card');
   hide('book-results');
@@ -594,10 +632,15 @@ document.getElementById('form-lesson').addEventListener('submit', async (e) => {
   show('lesson-loading');
 
   try {
+    if (!libraryCache.length) await loadLibrary().catch(() => {});
+    const exclude = [
+      ...Object.values(readSeenSuggestions()).map((entry) => entry.title),
+      ...libraryCache.map((entry) => entry.title),
+    ].filter(Boolean);
     const res = await fetch('/api/discover-by-lesson', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, exclude }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -611,7 +654,7 @@ document.getElementById('form-lesson').addEventListener('submit', async (e) => {
       }
       throw new Error(data.error || 'Search failed');
     }
-    renderLessonResults(data.books || [], query);
+    renderLessonResults(data.books || [], query, data.familyFiltered);
     if (!data.cached) loadAccount(); // this search costs the same as an analysis, so it counts too
   } catch (err) {
     document.getElementById('lesson-results').innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
@@ -619,19 +662,22 @@ document.getElementById('form-lesson').addEventListener('submit', async (e) => {
   } finally {
     hide('lesson-loading');
   }
-});
+}
 
-function renderLessonResults(books, query) {
+function renderLessonResults(books, query, familyFiltered) {
   const container = document.getElementById('lesson-results');
   if (!books.length) {
-    container.innerHTML = `<p class="hint">Couldn't find confident matches for "${escapeHtml(query)}". Try rephrasing, or search for a specific title instead.</p>`;
+    container.innerHTML = `<p class="hint">Couldn't find new matches for "${escapeHtml(query)}"${familyFiltered ? ' within your family settings' : ''}. Try rephrasing, or search for a specific title instead.</p>`;
     show('lesson-results');
     return;
   }
+  rememberSuggestions(books.map((b) => b?.title).filter(Boolean), `lesson:${query}`);
   const bookIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>';
   container.innerHTML = `
     <p class="card-label">Stories that explore "${escapeHtml(query)}"</p>
+    ${familyFiltered ? '<p class="hint small">Only books estimated to be within your family settings are shown. Analyse one to confirm.</p>' : ''}
     ${ratingLegendHtml(books)}
+    <div class="tile-grid">
     ${books.map((b) => {
       if (!b?.title) return '';
       const rating = renderStarRating(b.averageRating, b.ratingsCount, b.analysisCategories);
@@ -647,7 +693,10 @@ function renderLessonResults(books, query) {
           </div>
         </div>`;
     }).filter(Boolean).join('')}
+    </div>
+    <button id="btn-lesson-more" class="btn btn-secondary btn-block" type="button">Show different books</button>
   `;
+  document.getElementById('btn-lesson-more').addEventListener('click', () => searchByLesson(query));
   show('lesson-results');
 }
 
@@ -995,7 +1044,7 @@ function renderMentalModels(models) {
       </article>`;
   }).filter(Boolean).join('');
   if (!items) return '';
-  return `<section class="mental-models"><p class="card-label">Ways of thinking this story explores</p>${items}</section>`;
+  return `<section class="mental-models"><p class="card-label">Ways of thinking this story explores</p><div class="tile-grid">${items}</div></section>`;
 }
 
 function ageGuidanceText(ageGuidance) {
@@ -1022,7 +1071,7 @@ function renderDiscussionPoints(points, label = 'Conversation starters for paren
         ${point.talking_tip ? `<p class="discussion-note-tip">How to talk about it: ${escapeHtml(point.talking_tip)}</p>` : ''}
       </article>`;
   }).filter(Boolean).join('');
-  return `<section class="discussion-notes"><p class="card-label">${label}</p>${items || '<p class="discussion-notes-empty">No specific conversation starter was identified for this book.</p>'}</section>`;
+  return `<section class="discussion-notes"><p class="card-label">${label}</p>${items ? `<div class="tile-grid">${items}</div>` : '<p class="discussion-notes-empty">No specific conversation starter was identified for this book.</p>'}</section>`;
 }
 
 function renderComparableTitles(titles) {
@@ -1039,16 +1088,26 @@ function renderComparableTitles(titles) {
       </div>`;
   }).filter(Boolean).join('');
   if (!items) return '';
-  return `<section class="comparable-titles"><p class="card-label">If you know one of these, you'll know what to expect</p>${items}</section>`;
+  return `<section class="comparable-titles"><p class="card-label">If you know one of these, you'll know what to expect</p><div class="tile-grid">${items}</div></section>`;
 }
 
-function renderSuggestedTitles(titles) {
+// Skips books already in the library or already suggested from a different book, so each
+// analysis offers genuinely new next reads. Reopening the same book keeps its suggestions.
+function renderSuggestedTitles(titles, sourceBook) {
   if (!kidsCache.length || !Array.isArray(titles)) return '';
-  const suitable = titles.filter((title) => title?.title
-    && kidsCache.every((kid) => computeVerdict(title.categories || {}, kid, thresholdsCache).ok));
+  const source = `book:${suggestionTitleKey(sourceBook?.isbn || sourceBook?.title)}`;
+  const seen = readSeenSuggestions();
+  const owned = libraryTitleKeys();
+  const suitable = titles.filter((title) => {
+    if (!title?.title) return false;
+    const key = suggestionTitleKey(title.title);
+    if (owned.has(key) || (seen[key] && seen[key].source !== source)) return false;
+    return kidsCache.every((kid) => computeVerdict(title.categories || {}, kid, thresholdsCache).ok);
+  }).slice(0, 3);
   if (!suitable.length) return '';
+  rememberSuggestions(suitable.map((title) => title.title), source);
 
-  const items = suitable.slice(0, 3).map((title) => `
+  const items = suitable.map((title) => `
     <button class="suggested-book" data-title="${escapeHtml(title.title)}" data-author="${escapeHtml(title.author || '')}">
       <span><strong>${escapeHtml(title.title)}</strong>${title.author ? `<small>${escapeHtml(title.author)}</small>` : ''}</span>
       <span class="suggested-book-reason">${escapeHtml(title.why || 'A similar next read')}</span>
@@ -1123,6 +1182,34 @@ function renderPublicGuideLink(book) {
   return `<a class="public-guide-link" href="/book/${encodeURIComponent(isbn)}" target="_blank" rel="noopener">View public guide</a>`;
 }
 
+// Splits the deep dive into tabs so a parent jumps straight to one topic instead of
+// scrolling through every section in a single long column. Empty sections get no tab.
+function renderAnalysisTabs(panels) {
+  const visible = panels.filter((panel) => panel.html && panel.html.trim());
+  if (!visible.length) return '';
+  const tabs = visible.map((panel, i) => `
+    <button type="button" role="tab" class="analysis-tab ${i === 0 ? 'active' : ''}" id="analysis-tab-${panel.id}"
+      aria-controls="analysis-panel-${panel.id}" aria-selected="${i === 0}">${escapeHtml(panel.label)}</button>`).join('');
+  const bodies = visible.map((panel, i) => `
+    <div class="analysis-panel ${i === 0 ? '' : 'hidden'}" role="tabpanel" id="analysis-panel-${panel.id}"
+      aria-labelledby="analysis-tab-${panel.id}">${panel.html}</div>`).join('');
+  return `<div class="analysis-tabs" role="tablist" aria-label="Book details">${tabs}</div>${bodies}`;
+}
+
+function bindAnalysisTabs(container) {
+  const tabs = container.querySelectorAll('.analysis-tab');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((other) => {
+        const selected = other === tab;
+        other.classList.toggle('active', selected);
+        other.setAttribute('aria-selected', String(selected));
+        container.querySelector(`#${other.getAttribute('aria-controls')}`).classList.toggle('hidden', !selected);
+      });
+    });
+  });
+}
+
 function renderAnalysis(result) {
   const card = document.getElementById('analysis-card');
   const cats = result.categories || {};
@@ -1149,28 +1236,31 @@ function renderAnalysis(result) {
     <p class="card-label">Content summary</p>
     <div class="info-chip-row">${chips}</div>
     <section class="analysis-at-a-glance">
-      <p class="analysis-section-label">At a glance</p>
+      <p class="analysis-section-label">What parents should know</p>
       <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     </section>
     ${renderKidVerdicts(cats)}
-    <details class="analysis-deep-dive">
-      <summary>Deep dive <span>Content details, discussion points, and sources</span></summary>
-      ${renderContentAlert(cats)}
-      ${renderDiscussionPoints(result.discussion_points)}
-      <div class="stamp-grid">${stamps}</div>
-      ${renderMentalModels(result.mental_models)}
-      ${renderComparableTitles(result.comparable_titles)}
-      ${renderSuggestedTitles(result.suggested_titles)}
-      ${renderBuyLinks(currentBook)}
-      ${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}
-      ${sources ? `<ul class="sources">${sources}</ul>` : ''}
-    </details>
+    <section class="analysis-deep-dive">
+      <p class="analysis-section-label">Deep dive</p>
+      ${renderAnalysisTabs([
+        { id: 'content', label: 'Content', html: `${renderContentAlert(cats)}<div class="stamp-grid">${stamps}</div>` },
+        { id: 'talk', label: 'Talking points', html: renderDiscussionPoints(result.discussion_points) },
+        { id: 'thinking', label: 'Ways of thinking', html: renderMentalModels(result.mental_models) },
+        { id: 'books', label: 'Similar books', html: renderComparableTitles(result.comparable_titles) + renderSuggestedTitles(result.suggested_titles, currentBook) },
+        {
+          id: 'sources',
+          label: 'Sources',
+          html: `${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}${sources ? `<ul class="sources">${sources}</ul>` : ''}${renderBuyLinks(currentBook)}`,
+        },
+      ])}
+    </section>
     ${renderPublicGuideLink(currentBook)}
     <label for="notes-field">Your notes (optional)</label>
     <textarea id="notes-field" class="notes-field" placeholder="Anything you want to remember about this one..."></textarea>
     <button id="btn-save" class="btn btn-primary btn-block">Save to library</button>
   `;
   show('analysis-card');
+  bindAnalysisTabs(card);
   renderSummaryModal(result, cats);
 
   document.getElementById('btn-save').addEventListener('click', saveCurrentBook);
@@ -1193,6 +1283,7 @@ function renderSummaryModal(result, cats) {
       </div>
     </div>
     <div class="info-chip-row">${chips}</div>
+    <p class="analysis-section-label">What parents should know</p>
     <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     ${renderKidVerdicts(cats)}
   `;

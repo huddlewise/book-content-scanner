@@ -710,6 +710,58 @@ input:focus, button:focus-visible, textarea:focus {
 }
 .analysis-deep-dive[open] > summary { margin-bottom: 1rem; }
 
+/* Deep dive tabs - one topic at a time instead of one long scrolling column. */
+.analysis-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+.analysis-tabs::-webkit-scrollbar { display: none; }
+.analysis-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.analysis-tab:hover { border-color: var(--primary); color: var(--ink); }
+.analysis-tab.active {
+  background: var(--primary-soft);
+  border-color: var(--primary-dark);
+  color: var(--primary-dark);
+}
+.analysis-panel > section:first-child,
+.analysis-panel > .content-alert:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.analysis-panel > section:last-child { margin-bottom: 0; }
+
+/* Shared card grid for talking points, ways of thinking, and book lists. */
+.tile-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  margin-top: 0.65rem;
+}
+.tile-grid > .mental-model,
+.tile-grid > .discussion-note,
+.tile-grid > .comparable-title {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+}
+.tile-grid > .mental-model { border-left: 3px solid var(--teal); }
+.tile-grid > .discussion-note { border-left: 3px solid var(--primary); }
+.tile-grid > .comparable-title .lesson-lookup-btn { margin-top: 0.4rem; }
+
 .mental-models,
 .discussion-notes {
   border-top: 1px solid var(--line);
@@ -803,13 +855,15 @@ input:focus, button:focus-visible, textarea:focus {
 }
 .suggested-book-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 0.5rem;
   margin-top: 0.85rem;
 }
 .suggested-book {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.8rem;
   width: 100%;
   padding: 0.65rem 0.75rem;
@@ -830,7 +884,7 @@ input:focus, button:focus-visible, textarea:focus {
 .suggested-book span {
   color: var(--ink-muted);
   font-size: 0.8rem;
-  text-align: right;
+  text-align: left;
 }
 .suggested-book > span:first-child {
   color: var(--ink);
@@ -839,7 +893,7 @@ input:focus, button:focus-visible, textarea:focus {
   text-align: left;
 }
 .suggested-book small { color: var(--ink-muted); }
-.suggested-book-reason { line-height: 1.35; max-width: 52%; }
+.suggested-book-reason { line-height: 1.35; }
 .lesson-book-title,
 .comparable-book-title {
   border: 0;
@@ -1068,7 +1122,7 @@ input:focus, button:focus-visible, textarea:focus {
 
 .stamp-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 0.7rem;
   margin-bottom: 1rem;
 }
