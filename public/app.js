@@ -326,7 +326,7 @@ function startCamera(mode) {
     clearTimeout(barcodeHintTimer);
     barcodeHintTimer = setTimeout(() => {
       if (cameraActive && cameraMode === 'barcode') {
-        cameraStatus.textContent = 'Still looking. Hold the barcode flat, fill the frame, and avoid glare. You can also use Photograph cover.';
+        cameraStatus.textContent = 'Still looking. Hold the barcode flat, fill the frame, and avoid glare. You can also use Photograph book cover.';
       }
     }, 8000);
 
@@ -396,8 +396,8 @@ function stopCamera() {
   cameraWrap.classList.add('hidden');
   cameraWrap.classList.remove('camera-photo-mode');
   btnCapturePhoto.classList.add('hidden');
-  btnToggleCamera.textContent = 'Scan barcode';
-  btnPhotoCover.textContent = 'Photograph cover';
+  btnToggleCamera.textContent = 'Scan book barcode';
+  btnPhotoCover.textContent = 'Photograph book cover';
   cameraStatus.textContent = '';
 }
 
