@@ -1302,8 +1302,8 @@ function renderAnalysis(result) {
       <p class="analysis-summary">${escapeHtml(result.summary || '')}</p>
     </section>
     ${renderKidVerdicts(cats)}
-    <section class="analysis-deep-dive">
-      <p class="analysis-section-label">Deep dive</p>
+    <details class="analysis-deep-dive">
+      <summary>More detail, sources and suggestions<span>${flaggedCount ? `${flaggedCount} content areas flagged` : 'No content areas flagged'}</span></summary>
       ${renderAnalysisTabs([
         { id: 'content', label: 'Content', count: flaggedCount, html: renderContentPanel(cats) },
         { id: 'talk', label: 'Talking points', count: countOf(result.discussion_points), html: renderDiscussionPoints(result.discussion_points) },
@@ -1315,7 +1315,7 @@ function renderAnalysis(result) {
           html: `${result.caveat ? `<div class="caveat-box">${escapeHtml(result.caveat)}</div>` : ''}${sources ? `<ul class="sources">${sources}</ul>` : ''}${renderBuyLinks(currentBook)}`,
         },
       ])}
-    </section>
+    </details>
     ${renderPublicGuideLink(currentBook)}
     <label for="notes-field">Your notes (optional)</label>
     <textarea id="notes-field" class="notes-field" placeholder="Anything you want to remember about this one..."></textarea>
